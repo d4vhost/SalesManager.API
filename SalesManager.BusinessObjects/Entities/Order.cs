@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace SalesManager.BusinessObjects.Entities
 {
@@ -22,6 +23,15 @@ namespace SalesManager.BusinessObjects.Entities
         public string? ShipRegion { get; set; }
         public string? ShipPostalCode { get; set; }
         public string? ShipCountry { get; set; }
+
+        [Column(TypeName = "decimal(18, 2)")] // Especificar precisión para SQL Server
+        public decimal Subtotal { get; set; } = 0m;
+
+        [Column(TypeName = "decimal(18, 2)")]
+        public decimal VatAmount { get; set; } = 0m; // Monto del IVA
+
+        [Column(TypeName = "decimal(18, 2)")]
+        public decimal TotalAmount { get; set; } = 0m; // Total = Subtotal + VatAmount + Freight
 
         // Propiedades de navegación
         public virtual Customer? Customer { get; set; }

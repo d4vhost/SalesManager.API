@@ -1,11 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using SalesManager.BusinessObjects.Entities;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SalesManager.Repositories.Persistence
 {
@@ -16,7 +11,6 @@ namespace SalesManager.Repositories.Persistence
         {
         }
 
-        // --- Tablas de Northwind ---
         public DbSet<Product> Products { get; set; }
         public DbSet<Customer> Customers { get; set; }
         public DbSet<Order> Orders { get; set; }
@@ -28,22 +22,33 @@ namespace SalesManager.Repositories.Persistence
         {
             base.OnModelCreating(modelBuilder);
 
-            // Configurar clave compuesta para OrderDetail
-            modelBuilder.Entity<OrderDetail>()
-                .HasKey(od => new { od.OrderID, od.ProductID });
+            modelBuilder.Entity<OrderDetail>(entity =>
+            {
+                entity.HasKey(od => new { od.OrderID, od.ProductID });
 
-            // Configurar precisión de decimales para evitar advertencias
-            modelBuilder.Entity<Order>()
-                .Property(o => o.Freight)
-                .HasColumnType("decimal(18,2)");
+                entity.Property(od => od.UnitPrice)
+                    .HasColumnType("decimal(18,2)");
+            });
 
-            modelBuilder.Entity<OrderDetail>()
-                .Property(od => od.UnitPrice)
-                .HasColumnType("decimal(18,2)");
+            modelBuilder.Entity<Order>(entity =>
+            {
+                entity.Property(o => o.Freight)
+                    .HasColumnType("decimal(18,2)");
 
-            modelBuilder.Entity<Product>()
-                .Property(p => p.UnitPrice)
-                .HasColumnType("decimal(18,2)");
+                entity.Property(o => o.Subtotal)
+                    .HasColumnType("decimal(18,2)");
+                 
+                entity.Property(o => o.VatAmount)
+                    .HasColumnType("decimal(18,2)");
+                 
+                entity.Property(o => o.TotalAmount)
+                    .HasColumnType("decimal(18,2)");
+            });
+            modelBuilder.Entity<Product>(entity =>
+            {
+                entity.Property(p => p.UnitPrice)
+                    .HasColumnType("decimal(18,2)");
+            });
         }
     }
 }
