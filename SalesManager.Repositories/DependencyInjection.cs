@@ -43,6 +43,7 @@ namespace SalesManager.Repositories
             services.AddScoped<IProductRepository, ProductRepository>();
             services.AddScoped<ICustomerRepository, CustomerRepository>();
             services.AddScoped<IOrderRepository, OrderRepository>();
+            services.AddScoped<ICategoryRepository, CategoryRepository>();
 
             // 4. Registrar Servicios
             services.AddSingleton<ILoggerService, LoggerService>();

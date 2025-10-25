@@ -23,7 +23,6 @@ namespace SalesManager.Repositories.Services
         {
             if (order == null || order.OrderDetails == null || !order.OrderDetails.Any())
             {
-                _logger.LogWarn($"Intento de generar PDF para orden {order?.OrderID} sin detalles.");
                 throw new InvalidOperationException("No se puede generar PDF para una orden sin detalles.");
             }
 

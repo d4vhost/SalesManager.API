@@ -59,8 +59,6 @@ namespace SalesManager.WebAPI.Controllers
             }
             catch (InvalidOperationException ex) // Errores de negocio esperados (stock, duplicados, etc.)
             {
-                _logger.LogWarn($"Error de negocio al crear orden: {ex.Message}");
-                // Devuelve 400 Bad Request
                 return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex) // Errores inesperados
@@ -85,7 +83,6 @@ namespace SalesManager.WebAPI.Controllers
 
             if (order == null)
             {
-                _logger.LogWarn($"Intento de obtener orden inexistente: {id}");
                 return NotFound($"Orden con ID {id} no encontrada.");
             }
 
@@ -131,7 +128,6 @@ namespace SalesManager.WebAPI.Controllers
             var order = await _unitOfWork.OrderRepository.GetOrderWithDetailsAsync(id);
             if (order == null)
             {
-                _logger.LogWarn($"Intento de generar PDF para orden inexistente: {id}");
                 return NotFound($"Orden con ID {id} no encontrada.");
             }
 
@@ -145,7 +141,6 @@ namespace SalesManager.WebAPI.Controllers
             }
             catch (InvalidOperationException ex) // Ej: Orden sin detalles
             {
-                _logger.LogWarn($"No se pudo generar PDF para orden {id}: {ex.Message}");
                 return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex) // Otros errores durante la generación

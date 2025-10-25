@@ -12,6 +12,7 @@ namespace SalesManager.BusinessObjects.Interfaces
         IProductRepository ProductRepository { get; }
         ICustomerRepository CustomerRepository { get; }
         IOrderRepository OrderRepository { get; }
+        ICategoryRepository CategoryRepository { get; }
 
         // Método para guardar todos los cambios en la base de datos
         Task<int> SaveChangesAsync();

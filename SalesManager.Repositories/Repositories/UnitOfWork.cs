@@ -14,6 +14,7 @@ namespace SalesManager.Repositories.Repositories
         public IProductRepository ProductRepository { get; }
         public ICustomerRepository CustomerRepository { get; }
         public IOrderRepository OrderRepository { get; }
+        public ICategoryRepository CategoryRepository { get; }
 
         public UnitOfWork(ApplicationDbContext context)
         {
@@ -21,6 +22,7 @@ namespace SalesManager.Repositories.Repositories
             ProductRepository = new ProductRepository(_context);
             CustomerRepository = new CustomerRepository(_context);
             OrderRepository = new OrderRepository(_context);
+            CategoryRepository = new CategoryRepository(_context);
         }
 
         public async Task<int> SaveChangesAsync()

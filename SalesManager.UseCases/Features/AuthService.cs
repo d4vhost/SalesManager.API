@@ -38,7 +38,6 @@ namespace SalesManager.UseCases.Features
             var user = await _userManager.FindByEmailAsync(loginRequest.Email);
             if (user == null)
             {
-                _logger.LogWarn($"Intento de login fallido: Email {loginRequest.Email} no encontrado.");
                 return new TokenResponseDto { IsSuccess = false, ErrorMessage = "Credenciales inválidas." };
             }
 
@@ -47,13 +46,11 @@ namespace SalesManager.UseCases.Features
 
             if (result.IsLockedOut)
             {
-                _logger.LogWarn($"Usuario {loginRequest.Email} está bloqueado.");
                 return new TokenResponseDto { IsSuccess = false, ErrorMessage = "Cuenta bloqueada. Contacte al administrador." };
             }
 
             if (!result.Succeeded)
             {
-                _logger.LogWarn($"Intento de login fallido para {loginRequest.Email}.");
                 return new TokenResponseDto { IsSuccess = false, ErrorMessage = "Credenciales inválidas." };
             }
 
