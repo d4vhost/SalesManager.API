@@ -1,12 +1,12 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using SalesManager.BusinessObjects.Entities;
-using SalesManager.UseCases.DTOs.Auth;
-using SalesManager.UseCases.Interfaces;
-using System.Threading.Tasks;
+using SalesManager.BusinessObjects.Entities; // Necesario para ApplicationUser
+using SalesManager.UseCases.DTOs.Auth; // Necesario para los DTOs de Auth
+using SalesManager.UseCases.Interfaces; // Necesario para IAuthService
+using System.Threading.Tasks; // Necesario para Task<>
 
-namespace SalesManager.WebAPI.Controllers
+namespace SalesManager.WebAPI.Controllers // Asegúrate que el namespace sea correcto
 {
     [Route("api/[controller]")]
     [ApiController]
@@ -16,6 +16,7 @@ namespace SalesManager.WebAPI.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager; // Para gestionar roles
 
+        // Inyección de dependencias
         public AuthController(
             IAuthService authService,
             UserManager<ApplicationUser> userManager,
@@ -28,28 +29,31 @@ namespace SalesManager.WebAPI.Controllers
 
         // POST: api/Auth/Login
         [HttpPost("login")]
+        [AllowAnonymous] // Permite acceso sin autenticación
         public async Task<IActionResult> Login([FromBody] UserLoginRequestDto loginRequest)
         {
+            // Valida el DTO recibido
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
+            // Llama al servicio de autenticación
             var result = await _authService.LoginAsync(loginRequest);
 
             if (!result.IsSuccess)
             {
-                // Devolvemos Unauthorized si las credenciales son inválidas o la cuenta está bloqueada
+                // Devuelve 401 Unauthorized si las credenciales son inválidas o la cuenta está bloqueada.pdf"]
                 return Unauthorized(new { message = result.ErrorMessage });
             }
 
+            // Devuelve 200 OK con el token JWT si el login es exitoso.pdf"]
             return Ok(result);
         }
 
         // POST: api/Auth/Register
         [HttpPost("register")]
-        // Podrías restringir quién puede registrarse, por ejemplo, solo Admins
-        // [Authorize(Roles = "Admin")]
+        [AllowAnonymous] // O [Authorize(Roles = "Admin")] si solo admins pueden registrar
         public async Task<IActionResult> Register([FromBody] UserRegisterRequestDto registerRequest)
         {
             if (!ModelState.IsValid)
@@ -57,27 +61,24 @@ namespace SalesManager.WebAPI.Controllers
                 return BadRequest(ModelState);
             }
 
-            // Requisito 39: Por defecto, rol Usuarios.pdf"]
-            // Si quieres permitir registro de Admins, necesitarás lógica adicional
-            // o un endpoint separado [Authorize(Roles = "Admin")]
+            // Registra al usuario con el rol por defecto "Usuario".pdf"]
             var result = await _authService.RegisterAsync(registerRequest, "Usuario");
 
             if (!result.IsSuccess)
             {
-                // Devolvemos BadRequest si el correo ya existe o hubo error de Identity
+                // Devuelve 400 Bad Request si el correo ya existe o hubo error de Identity
                 return BadRequest(new { message = result.ErrorMessage });
             }
 
-            // Podrías devolver Ok(result) si quieres retornar el token inmediatamente
-            // o CreatedAtAction si tienes un endpoint para obtener info del usuario
+            // Devuelve 200 OK (o 201 Created si devuelves la info del usuario creado)
             return Ok(new { message = "Usuario registrado exitosamente." });
         }
 
-        // --- Gestión de Usuarios y Roles (Ejemplos, requiere [Authorize(Roles = "Admin")]) ---
+        // --- Gestión de Roles (Ejemplo) ---
 
-        // POST: api/Auth/CreateRole
+        // POST: api/Auth/roles
         [HttpPost("roles")]
-        [Authorize(Roles = "Admin")] // Solo Admins pueden crear roles
+        [Authorize(Roles = "Admin")] // Solo Admins pueden crear roles.pdf"]
         public async Task<IActionResult> CreateRole([FromBody] string roleName)
         {
             if (string.IsNullOrWhiteSpace(roleName))
@@ -94,12 +95,16 @@ namespace SalesManager.WebAPI.Controllers
             var result = await _roleManager.CreateAsync(new IdentityRole(roleName));
             if (result.Succeeded)
             {
+                // Asegúrate de que los roles base existan (Admin, Usuario) la primera vez
+                if (!await _roleManager.RoleExistsAsync("Admin")) await _roleManager.CreateAsync(new IdentityRole("Admin"));
+                if (!await _roleManager.RoleExistsAsync("Usuario")) await _roleManager.CreateAsync(new IdentityRole("Usuario"));
+
                 return Ok($"Rol '{roleName}' creado exitosamente.");
             }
             return BadRequest(result.Errors);
         }
 
-        // POST: api/Auth/AssignRole
+        // POST: api/Auth/assignrole
         [HttpPost("assignrole")]
         [Authorize(Roles = "Admin")] // Solo Admins pueden asignar roles
         public async Task<IActionResult> AssignRole([FromBody] AssignRoleDto assignRoleDto)
@@ -124,7 +129,7 @@ namespace SalesManager.WebAPI.Controllers
             return BadRequest(result.Errors);
         }
 
-        // PUT: api/Auth/UnlockUser/{email}
+        // PUT: api/Auth/unlock/{email}
         // Requisito 25: Desbloquear usuario.pdf"]
         [HttpPut("unlock/{email}")]
         [Authorize(Roles = "Admin")] // Solo Admins pueden desbloquear
@@ -136,8 +141,8 @@ namespace SalesManager.WebAPI.Controllers
                 return NotFound($"Usuario con email '{email}' no encontrado.");
             }
 
-            // Resetea el contador de intentos fallidos y la fecha de bloqueo
-            var result = await _userManager.SetLockoutEndDateAsync(user, null); // null o DateTimeOffset.MinValue
+            // Resetea la fecha de bloqueo y el contador de intentos fallidos
+            var result = await _userManager.SetLockoutEndDateAsync(user, null); // Poner null quita el bloqueo
             await _userManager.ResetAccessFailedCountAsync(user);
 
 
@@ -149,10 +154,12 @@ namespace SalesManager.WebAPI.Controllers
         }
     }
 
-    // DTO auxiliar para asignar roles
+    // DTO auxiliar para el body de AssignRole
     public class AssignRoleDto
     {
-        public string Email { get; set; }
-        public string RoleName { get; set; }
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Email { get; set; } = "";
+        [System.ComponentModel.DataAnnotations.Required]
+        public string RoleName { get; set; } = "";
     }
 }
