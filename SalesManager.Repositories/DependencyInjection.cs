@@ -46,6 +46,7 @@ namespace SalesManager.Repositories
 
             // 4. Registrar Servicios
             services.AddSingleton<ILoggerService, LoggerService>();
+            services.AddTransient<IPdfGeneratorService, PdfGeneratorService>();
 
             return services;
         }

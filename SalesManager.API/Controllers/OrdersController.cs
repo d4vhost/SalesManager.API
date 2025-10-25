@@ -19,12 +19,14 @@ namespace SalesManager.WebAPI.Controllers // Asegúrate que el namespace sea cor
         private readonly CreateOrderInteractor _createOrderInteractor;
         private readonly IUnitOfWork _unitOfWork;
         private readonly ILoggerService _logger; // Para loguear errores
+        private readonly IPdfGeneratorService _pdfGeneratorService;
 
-        public OrdersController(CreateOrderInteractor createOrderInteractor, IUnitOfWork unitOfWork, ILoggerService logger)
+        public OrdersController(CreateOrderInteractor createOrderInteractor, IUnitOfWork unitOfWork, ILoggerService logger, IPdfGeneratorService pdfGeneratorService)
         {
             _createOrderInteractor = createOrderInteractor;
             _unitOfWork = unitOfWork;
             _logger = logger;
+            _pdfGeneratorService = pdfGeneratorService;
         }
 
         // POST: api/Orders
@@ -98,20 +100,36 @@ namespace SalesManager.WebAPI.Controllers // Asegúrate que el namespace sea cor
             return Ok(orderDetailsDto);
         }
 
-        // (Opcional - Requisito 12: Generar PDF).pdf"]
-        // GET: api/Orders/{id}/pdf
-        // [HttpGet("{id}/pdf")]
-        // public async Task<IActionResult> GetOrderPdf(int id)
-        // {
-        //     var order = await _unitOfWork.OrderRepository.GetOrderWithDetailsAsync(id);
-        //     if (order == null) return NotFound();
-        //
-        //     // --- Lógica para generar PDF ---
-        //     // byte[] pdfBytes = await _pdfGeneratorService.GenerateInvoicePdfAsync(order); // Necesitarías un servicio para esto
-        //
-        //     // return File(pdfBytes, "application/pdf", $"Factura-{id}.pdf");
-        //     return Ok("Funcionalidad PDF pendiente."); // Placeholder
-        // }
+        [HttpGet("{id}/pdf")]
+        public async Task<IActionResult> GetOrderPdf(int id)
+        {
+            // 1. Obtener la orden con detalles (asegúrate que incluye Customer y Product)
+            var order = await _unitOfWork.OrderRepository.GetOrderWithDetailsAsync(id);
+            if (order == null)
+            {
+                _logger.LogWarn($"Intento de generar PDF para orden inexistente: {id}");
+                return NotFound($"Orden con ID {id} no encontrada.");
+            }
+
+            try
+            {
+                // 2. Generar el PDF usando el servicio
+                byte[] pdfBytes = await _pdfGeneratorService.GenerateInvoicePdfAsync(order);
+
+                // 3. Devolver el archivo PDF
+                return File(pdfBytes, "application/pdf", $"Factura-{id}.pdf");
+            }
+            catch (InvalidOperationException ex) // Ej: Orden sin detalles
+            {
+                _logger.LogWarn($"No se pudo generar PDF para orden {id}: {ex.Message}");
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error inesperado al generar PDF para orden {id}.", ex);
+                return StatusCode(500, new { message = "Error al generar el PDF de la factura." });
+            }
+        }
     }
 
     // --- DTOs Auxiliares para GetOrder (Crea estos en SalesManager.UseCases/DTOs/Orders) ---
