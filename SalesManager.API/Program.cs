@@ -4,6 +4,7 @@ using Microsoft.OpenApi.Models;
 using SalesManager.Repositories;
 using SalesManager.UseCases;
 using System.Text;
+using Microsoft.AspNetCore.Http;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -88,6 +89,8 @@ builder.Services.AddSwaggerGen(options =>
         }
     });
 });
+
+builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
 

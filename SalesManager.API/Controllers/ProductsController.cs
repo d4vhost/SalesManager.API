@@ -1,18 +1,19 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using SalesManager.BusinessObjects.Entities; // Necesario para Product
-using SalesManager.BusinessObjects.Interfaces; // Necesario para IUnitOfWork
-using SalesManager.UseCases.DTOs.Products; // Necesario para ProductDto
+using SalesManager.BusinessObjects.Entities;
+using SalesManager.BusinessObjects.Interfaces;
+using SalesManager.UseCases.DTOs.Products;
+using SalesManager.UseCases.DTOs.Common; // <-- Añade para PagedResultDto
 using System.Collections.Generic;
-using System.Linq; // Necesario para .Select()
-using System.Threading.Tasks; // Necesario para Task<>
+using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore; // Necesario para DbUpdateConcurrencyException
 
-namespace SalesManager.WebAPI.Controllers // Asegúrate que el namespace sea correcto
+namespace SalesManager.WebAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize] // Requiere autenticación para todas las acciones
+    [Authorize]
     public class ProductsController : ControllerBase
     {
         private readonly IUnitOfWork _unitOfWork;
@@ -22,28 +23,41 @@ namespace SalesManager.WebAPI.Controllers // Asegúrate que el namespace sea cor
             _unitOfWork = unitOfWork;
         }
 
-        // GET: api/Products
+        // --- MÉTODO GET MODIFICADO ---
+        // GET: api/Products?searchTerm=chai&pageNumber=1&pageSize=10
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<ProductDto>>> GetProducts()
+        public async Task<ActionResult<PagedResultDto<ProductDto>>> GetProducts(
+            [FromQuery] string searchTerm = "", // Parámetro de búsqueda (opcional)
+            [FromQuery] int pageNumber = 1,    // Número de página (por defecto 1)
+            [FromQuery] int pageSize = 10)     // Tamaño de página (por defecto 10)
         {
-            var products = await _unitOfWork.ProductRepository.GetAllAsync();
-            // Mapeo simple a DTO
+            // Validar paginación
+            if (pageNumber < 1) pageNumber = 1;
+            if (pageSize < 1) pageSize = 10;
+            // Podrías poner un límite máximo a pageSize
+
+            // Llama al nuevo método del repositorio
+            var (products, totalCount) = await _unitOfWork.ProductRepository.FindProductsAsync(searchTerm, pageNumber, pageSize);
+
+            // Mapea a DTOs
             var productDtos = products.Select(p => new ProductDto
             {
                 ProductID = p.ProductID,
                 ProductName = p.ProductName,
                 UnitPrice = p.UnitPrice,
                 UnitsInStock = p.UnitsInStock
-            });
-            return Ok(productDtos);
+            }).ToList(); // Convertir a List<T> para el PagedResultDto
+
+            // Crea el objeto de resultado paginado
+            var pagedResult = new PagedResultDto<ProductDto>(productDtos, pageNumber, pageSize, totalCount);
+
+            return Ok(pagedResult);
         }
 
-        // GET: api/Products/sellable
-        // Requisito 8: Mostrar solo productos con stock > 0.pdf"]
+        // GET: api/Products/sellable (Este puede quedarse igual o también paginar si lo necesitas)
         [HttpGet("sellable")]
         public async Task<ActionResult<IEnumerable<ProductDto>>> GetSellableProducts()
         {
-            // Llama al método específico del repositorio
             var products = await _unitOfWork.ProductRepository.GetSellableProductsAsync();
             var productDtos = products.Select(p => new ProductDto
             {
@@ -55,55 +69,34 @@ namespace SalesManager.WebAPI.Controllers // Asegúrate que el namespace sea cor
             return Ok(productDtos);
         }
 
-        // GET: api/Products/{id} (ej: /api/Products/5)
+        // GET: api/Products/5 (Este no cambia)
         [HttpGet("{id}")]
-        public async Task<ActionResult<Product>> GetProduct(int id) // Devuelve la entidad completa
+        public async Task<ActionResult<Product>> GetProduct(int id)
         {
             var product = await _unitOfWork.ProductRepository.GetByIdAsync(id);
-
-            if (product == null)
-            {
-                return NotFound($"Producto con ID {id} no encontrado.");
-            }
+            if (product == null) return NotFound($"Producto con ID {id} no encontrado.");
             return Ok(product);
         }
 
-        // POST: api/Products
+        // POST, PUT, DELETE (Estos no cambian)
         [HttpPost]
-        [Authorize(Roles = "Admin")] // Solo Admins pueden crear productos.pdf"]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<Product>> PostProduct([FromBody] Product product)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            // (Opcional: Validar si ya existe un producto con el mismo nombre, etc.)
-
+            if (!ModelState.IsValid) return BadRequest(ModelState);
             await _unitOfWork.ProductRepository.AddAsync(product);
             await _unitOfWork.SaveChangesAsync();
-
-            // Devuelve el objeto creado y la ruta para obtenerlo
             return CreatedAtAction(nameof(GetProduct), new { id = product.ProductID }, product);
         }
 
-        // PUT: api/Products/{id}
         [HttpPut("{id}")]
-        [Authorize(Roles = "Admin")] // Solo Admins pueden modificar productos
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> PutProduct(int id, [FromBody] Product productUpdate)
         {
-            if (id != productUpdate.ProductID || !ModelState.IsValid)
-            {
-                return BadRequest("El ID proporcionado no coincide o el modelo no es válido.");
-            }
-
+            if (id != productUpdate.ProductID || !ModelState.IsValid) return BadRequest();
             var product = await _unitOfWork.ProductRepository.GetByIdAsync(id);
-            if (product == null)
-            {
-                return NotFound($"Producto con ID {id} no encontrado.");
-            }
+            if (product == null) return NotFound();
 
-            // Actualiza las propiedades
             product.ProductName = productUpdate.ProductName;
             product.SupplierID = productUpdate.SupplierID;
             product.CategoryID = productUpdate.CategoryID;
@@ -115,45 +108,24 @@ namespace SalesManager.WebAPI.Controllers // Asegúrate que el namespace sea cor
             product.Discontinued = productUpdate.Discontinued;
 
             _unitOfWork.ProductRepository.Update(product);
-
-            try
+            try { await _unitOfWork.SaveChangesAsync(); }
+            catch (DbUpdateConcurrencyException)
             {
-                await _unitOfWork.SaveChangesAsync();
+                if (await _unitOfWork.ProductRepository.GetByIdAsync(id) == null) return NotFound();
+                else return Conflict("El producto fue modificado por otro usuario.");
             }
-            catch (DbUpdateConcurrencyException) // Manejo básico de concurrencia.pdf"]
-            {
-                if (await _unitOfWork.ProductRepository.GetByIdAsync(id) == null)
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    return Conflict("El producto fue modificado por otro usuario. Recargue los datos.");
-                }
-            }
-
-            return NoContent(); // Éxito
+            return NoContent();
         }
 
-        // DELETE: api/Products/{id}
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin")] // Solo Admins pueden eliminar productos
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteProduct(int id)
         {
             var product = await _unitOfWork.ProductRepository.GetByIdAsync(id);
-            if (product == null)
-            {
-                return NotFound($"Producto con ID {id} no encontrado.");
-            }
-
-            // (Opcional) Validación: No permitir borrar si está en alguna orden
-            // var isInOrder = await _context.OrderDetails.AnyAsync(od => od.ProductID == id);
-            // if (isInOrder) return BadRequest("No se puede eliminar un producto que está en órdenes.");
-
+            if (product == null) return NotFound();
             _unitOfWork.ProductRepository.Delete(product);
             await _unitOfWork.SaveChangesAsync();
-
-            return NoContent(); // Éxito
+            return NoContent();
         }
     }
 }

@@ -9,7 +9,6 @@ namespace SalesManager.BusinessObjects.Interfaces
 {
     public interface ICustomerRepository : IGenericRepository<Customer>
     {
-        // Aquí irán métodos de búsqueda inteligente
-        // Task<IReadOnlyList<Customer>> FindCustomersAsync(string searchTerm);
+        Task<(IReadOnlyList<Customer> Customers, int TotalCount)> FindCustomersAsync(string searchTerm, int pageNumber, int pageSize);
     }
 }
