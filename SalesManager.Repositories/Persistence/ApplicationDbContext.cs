@@ -27,8 +27,23 @@ namespace SalesManager.Repositories.Persistence
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            // Configurar clave compuesta para OrderDetail
             modelBuilder.Entity<OrderDetail>()
                 .HasKey(od => new { od.OrderID, od.ProductID });
+
+            // Configurar precisión de decimales para evitar advertencias
+            modelBuilder.Entity<Order>()
+                .Property(o => o.Freight)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<OrderDetail>()
+                .Property(od => od.UnitPrice)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<Product>()
+                .Property(p => p.UnitPrice)
+                .HasColumnType("decimal(18,2)");
         }
     }
 }
