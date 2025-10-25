@@ -69,7 +69,7 @@ namespace SalesManager.UseCases.Features
 
                 // Requisito 7: "disminución AUTOMÁTICA del inventario"
                 // Convertir explícitamente a short para evitar error de nulabilidad
-                product.UnitsInStock -= (short)item.Quantity;
+                product.UnitsInStock = (short)(product.UnitsInStock!.Value - item.Quantity);
                 _unitOfWork.ProductRepository.Update(product);
 
                 var orderDetail = new OrderDetail
