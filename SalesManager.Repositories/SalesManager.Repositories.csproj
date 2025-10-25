@@ -20,7 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\alesManager.UseCases\SalesManager.UseCases.csproj" />
+    <ProjectReference Include="..\SalesManager.UseCases\SalesManager.UseCases.csproj" />
     <ProjectReference Include="..\SalesManager.BusinessObjects\SalesManager.BusinessObjects.csproj" />
     <ProjectReference Include="..\SalesManager.UseCases\SalesManager.UseCases.csproj" />
   </ItemGroup>
