@@ -45,11 +45,11 @@ namespace SalesManager.WebAPI.Controllers
         }
 
         [HttpPost("register")]
-        [AllowAnonymous] // O [Authorize(Roles = "Admin")]
+        [AllowAnonymous] // O [Authorize(Roles = "Admin")]  
         public async Task<IActionResult> Register([FromBody] UserRegisterRequestDto registerRequest)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
-            var result = await _authService.RegisterAsync(registerRequest, "Usuario");
+            var result = await _authService.RegisterAsync(registerRequest, "Usuario"); 
             if (!result.IsSuccess) return BadRequest(new { message = result.ErrorMessage });
             return Ok(new { message = "Usuario registrado exitosamente." });
         }
@@ -57,7 +57,7 @@ namespace SalesManager.WebAPI.Controllers
         // --- Endpoints de Gestión de Roles ---
 
         [HttpPost("roles")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin")]  
         public async Task<IActionResult> CreateRole([FromBody] string roleName)
         {
             if (string.IsNullOrWhiteSpace(roleName)) return BadRequest("El nombre del rol es requerido.");
@@ -74,7 +74,7 @@ namespace SalesManager.WebAPI.Controllers
         }
 
         [HttpPost("assignrole")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin")]  
         public async Task<IActionResult> AssignRole([FromBody] AssignRoleDto assignRoleDto)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState); // Validar DTO
@@ -92,7 +92,7 @@ namespace SalesManager.WebAPI.Controllers
         }
 
         [HttpPut("unlock/{email}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin")]  
         public async Task<IActionResult> UnlockUser(string email)
         {
             var user = await _userManager.FindByEmailAsync(email);
@@ -114,7 +114,7 @@ namespace SalesManager.WebAPI.Controllers
 
         // GET: api/Auth/users
         [HttpGet("users")]
-        [Authorize(Roles = "Admin")] // Solo Admins pueden listar usuarios
+        [Authorize(Roles = "Admin")]   // Solo Admins pueden listar usuarios
         public async Task<ActionResult<IEnumerable<UserDto>>> GetUsers()
         {
             var users = await _userManager.Users.ToListAsync();
@@ -139,7 +139,7 @@ namespace SalesManager.WebAPI.Controllers
 
         // GET: api/Auth/users/{email}
         [HttpGet("users/{email}")]
-        [Authorize(Roles = "Admin")] // Solo Admins pueden ver detalles
+        [Authorize(Roles = "Admin")]   // Solo Admins pueden ver detalles
         public async Task<ActionResult<UserDto>> GetUserByEmail(string email)
         {
             var user = await _userManager.FindByEmailAsync(email);
@@ -164,7 +164,7 @@ namespace SalesManager.WebAPI.Controllers
 
         // PUT: api/Auth/users/{email}
         [HttpPut("users/{email}")]
-        [Authorize(Roles = "Admin")] // Solo Admins pueden actualizar
+        [Authorize(Roles = "Admin")]   // Solo Admins pueden actualizar
         public async Task<IActionResult> UpdateUser(string email, [FromBody] UpdateUserDto updateUserDto)
         {
             if (!ModelState.IsValid)
@@ -199,7 +199,7 @@ namespace SalesManager.WebAPI.Controllers
 
         // DELETE: api/Auth/users/{email}
         [HttpDelete("users/{email}")]
-        [Authorize(Roles = "Admin")] // Solo Admins pueden eliminar
+        [Authorize(Roles = "Admin")]   // Solo Admins pueden eliminar
         public async Task<IActionResult> DeleteUser(string email)
         {
             var user = await _userManager.FindByEmailAsync(email);
