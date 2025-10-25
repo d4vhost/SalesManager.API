@@ -1,0 +1,7 @@
+# Cache de Visual Studio
+.vs/
+
+# Archivos de compilación
+[Bb]in/
+[Oo]bj/
+*.csproj.user
