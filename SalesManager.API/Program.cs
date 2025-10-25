@@ -1,20 +1,23 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using SalesManager.Repositories;
-using SalesManager.UseCases;
+using SalesManager.Repositories; // Para AddRepositoriesServices
+using SalesManager.UseCases;    // Para AddUseCasesServices
 using System.Text;
-using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http; // Para AddHttpContextAccessor
+
+// --- 1. Definir el nombre de la política de CORS ---
+var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Agregar servicios de la capa de Repositorios (incluye DbContext e Identity)
+// --- 2. Agregar servicios de la capa de Repositorios ---
 builder.Services.AddRepositoriesServices(builder.Configuration);
 
-// 2. Agregar servicios de la capa de Casos de Uso (Interactors, validadores)
+// --- 3. Agregar servicios de la capa de Casos de Uso ---
 builder.Services.AddUseCasesServices();
 
-// 3. Configurar autenticación JWT
+// --- 4. Configurar autenticación JWT ---
 var jwtSettings = builder.Configuration.GetSection("Jwt");
 var jwtKey = jwtSettings["Key"] ?? throw new InvalidOperationException("JWT Key no configurada");
 
@@ -38,21 +41,22 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// 4. Configurar CORS (si lo necesitas para un frontend)
+// --- 5. Configurar CORS (¡CORREGIDO!) ---
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
-    {
-        policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
-    });
+    // Cambiamos "AllowAll" por un nombre específico
+    options.AddPolicy(name: MyAllowSpecificOrigins,
+                      policy =>
+                      {
+                          // Permitimos SOLO el origen de tu frontend
+                          policy.WithOrigins("http://localhost:5173")
+                                .AllowAnyMethod()
+                                .AllowAnyHeader();
+                      });
 });
 
-// 5. Agregar controladores
+// --- 6. Agregar controladores y Swagger ---
 builder.Services.AddControllers();
-
-// 6. Configurar Swagger con soporte para JWT
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -94,7 +98,7 @@ builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
 
-// 7. Configurar el pipeline HTTP
+// --- 7. Configurar el pipeline HTTP ---
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -104,7 +108,8 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 // IMPORTANTE: El orden importa
-app.UseCors("AllowAll"); // Antes de Authentication
+// Usamos la política específica que definimos
+app.UseCors(MyAllowSpecificOrigins); // Antes de Authentication
 
 app.UseAuthentication(); // Debe ir ANTES de Authorization
 app.UseAuthorization();
