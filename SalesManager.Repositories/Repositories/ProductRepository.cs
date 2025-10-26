@@ -18,16 +18,16 @@ namespace SalesManager.Repositories.Repositories
 
         public async Task<IReadOnlyList<Product>> GetSellableProductsAsync()
         {
+            // Este método sigue igual, útil para casos sin paginación/búsqueda
             return await _context.Products
                 .Where(p => p.UnitsInStock > 0 && !p.Discontinued)
                 .AsNoTracking()
                 .ToListAsync();
         }
 
-        // --- IMPLEMENTACIÓN DEL NUEVO MÉTODO ---
-        public async Task<(IReadOnlyList<Product> Products, int TotalCount)> FindProductsAsync(string searchTerm, int pageNumber, int pageSize)
+        // --- IMPLEMENTACIÓN DEL MÉTODO MODIFICADO ---
+        public async Task<(IReadOnlyList<Product> Products, int TotalCount)> FindProductsAsync(string searchTerm, int pageNumber, int pageSize, int? categoryId = null) // Añadido categoryId
         {
-            // Empezamos con la consulta base
             var query = _context.Products.AsNoTracking();
 
             // Aplicamos el filtro de búsqueda si searchTerm no está vacío
@@ -38,11 +38,23 @@ namespace SalesManager.Repositories.Repositories
                 query = query.Where(p =>
                     p.ProductName.ToLower().Contains(term) ||
                     (p.ProductID.ToString() == term) // Permitir buscar por ID exacto
-                                                     // Añade más campos si quieres buscar por ellos (ej: p.Category.CategoryName)
                 );
             }
 
-            // Calculamos el total de registros ANTES de paginar
+            // --- AÑADIR FILTRO POR CATEGORÍA ---
+            if (categoryId.HasValue && categoryId > 0)
+            {
+                query = query.Where(p => p.CategoryID == categoryId);
+            }
+            // --- FIN AÑADIR FILTRO ---
+
+            // --- AÑADIR FILTRO PARA SOLO VENDIBLES ---
+            // Requisito 8.pdf"]
+            query = query.Where(p => p.UnitsInStock > 0 && !p.Discontinued);
+            // --- FIN FILTRO VENDIBLES ---
+
+
+            // Calculamos el total de registros ANTES de paginar (después de aplicar filtros)
             var totalCount = await query.CountAsync();
 
             // Aplicamos la paginación

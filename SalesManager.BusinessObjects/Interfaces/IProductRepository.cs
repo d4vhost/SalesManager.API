@@ -12,6 +12,8 @@ namespace SalesManager.BusinessObjects.Interfaces
         // Requisito 8: "Los productos para vender... stock mayor que cero"
         //.pdf", source 31]
         Task<IReadOnlyList<Product>> GetSellableProductsAsync();
-        Task<(IReadOnlyList<Product> Products, int TotalCount)> FindProductsAsync(string searchTerm, int pageNumber, int pageSize);
+
+        // Modificado para incluir categoryId opcional
+        Task<(IReadOnlyList<Product> Products, int TotalCount)> FindProductsAsync(string searchTerm, int pageNumber, int pageSize, int? categoryId = null);
     }
 }

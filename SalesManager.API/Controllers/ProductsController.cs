@@ -3,11 +3,11 @@ using Microsoft.AspNetCore.Mvc;
 using SalesManager.BusinessObjects.Entities;
 using SalesManager.BusinessObjects.Interfaces;
 using SalesManager.UseCases.DTOs.Products;
-using SalesManager.UseCases.DTOs.Common; // <-- Añade para PagedResultDto
+using SalesManager.UseCases.DTOs.Common;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore; // Necesario para DbUpdateConcurrencyException
+using Microsoft.EntityFrameworkCore;
 
 namespace SalesManager.WebAPI.Controllers
 {
@@ -23,62 +23,65 @@ namespace SalesManager.WebAPI.Controllers
             _unitOfWork = unitOfWork;
         }
 
-        // --- MÉTODO GET MODIFICADO ---
-        // GET: api/Products?searchTerm=chai&pageNumber=1&pageSize=10
+        // GET: api/Products?searchTerm=chai&pageNumber=1&pageSize=10&categoryId=1
         [HttpGet]
         public async Task<ActionResult<PagedResultDto<ProductDto>>> GetProducts(
-            [FromQuery] string searchTerm = "", // Parámetro de búsqueda (opcional)
-            [FromQuery] int pageNumber = 1,    // Número de página (por defecto 1)
-            [FromQuery] int pageSize = 10)     // Tamaño de página (por defecto 10)
+            [FromQuery] string searchTerm = "",
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 10,
+            [FromQuery] int? categoryId = null)
         {
-            // Validar paginación
             if (pageNumber < 1) pageNumber = 1;
             if (pageSize < 1) pageSize = 10;
-            // Podrías poner un límite máximo a pageSize
 
-            // Llama al nuevo método del repositorio
-            var (products, totalCount) = await _unitOfWork.ProductRepository.FindProductsAsync(searchTerm, pageNumber, pageSize);
+            var (products, totalCount) = await _unitOfWork.ProductRepository.FindProductsAsync(searchTerm, pageNumber, pageSize, categoryId);
 
-            // Mapea a DTOs
+            // --- ACTUALIZAR MAPEADO ---
             var productDtos = products.Select(p => new ProductDto
             {
                 ProductID = p.ProductID,
                 ProductName = p.ProductName,
                 UnitPrice = p.UnitPrice,
-                UnitsInStock = p.UnitsInStock
-            }).ToList(); // Convertir a List<T> para el PagedResultDto
+                UnitsInStock = p.UnitsInStock,
+                QuantityPerUnit = p.QuantityPerUnit, // Añadido
+                Discontinued = p.Discontinued        // Añadido
+            }).ToList();
+            // --- FIN ACTUALIZACIÓN ---
 
-            // Crea el objeto de resultado paginado
             var pagedResult = new PagedResultDto<ProductDto>(productDtos, pageNumber, pageSize, totalCount);
 
             return Ok(pagedResult);
         }
 
-        // GET: api/Products/sellable (Este puede quedarse igual o también paginar si lo necesitas)
+        // GET: api/Products/sellable
         [HttpGet("sellable")]
         public async Task<ActionResult<IEnumerable<ProductDto>>> GetSellableProducts()
         {
             var products = await _unitOfWork.ProductRepository.GetSellableProductsAsync();
+            // --- ACTUALIZAR MAPEADO ---
             var productDtos = products.Select(p => new ProductDto
             {
                 ProductID = p.ProductID,
                 ProductName = p.ProductName,
                 UnitPrice = p.UnitPrice,
-                UnitsInStock = p.UnitsInStock
+                UnitsInStock = p.UnitsInStock,
+                QuantityPerUnit = p.QuantityPerUnit, // Añadido
+                Discontinued = p.Discontinued        // Añadido
             });
+            // --- FIN ACTUALIZACIÓN ---
             return Ok(productDtos);
         }
 
-        // GET: api/Products/5 (Este no cambia)
+        // GET: api/Products/5 (No cambia)
         [HttpGet("{id}")]
         public async Task<ActionResult<Product>> GetProduct(int id)
         {
             var product = await _unitOfWork.ProductRepository.GetByIdAsync(id);
             if (product == null) return NotFound($"Producto con ID {id} no encontrado.");
-            return Ok(product);
+            return Ok(product); // Devuelve entidad completa, frontend puede usar lo que necesite
         }
 
-        // POST, PUT, DELETE (Estos no cambian)
+        // POST, PUT, DELETE (No cambian)
         [HttpPost]
         [Authorize(Roles = "Admin")]
         public async Task<ActionResult<Product>> PostProduct([FromBody] Product product)

@@ -23,7 +23,6 @@ namespace SalesManager.WebAPI.Controllers
             _unitOfWork = unitOfWork;
         }
 
-        // --- MÉTODO GET MODIFICADO ---
         // GET: api/Customers?searchTerm=maria&pageNumber=1&pageSize=10
         [HttpGet]
         public async Task<ActionResult<PagedResultDto<CustomerDto>>> GetCustomers(
@@ -36,20 +35,25 @@ namespace SalesManager.WebAPI.Controllers
 
             var (customers, totalCount) = await _unitOfWork.CustomerRepository.FindCustomersAsync(searchTerm, pageNumber, pageSize);
 
+            // --- ACTUALIZAR MAPEADO ---
             var customerDtos = customers.Select(c => new CustomerDto
             {
                 CustomerID = c.CustomerID,
                 CompanyName = c.CompanyName,
                 ContactName = c.ContactName,
-                Phone = c.Phone
+                Phone = c.Phone,
+                Address = c.Address, 
+                City = c.City,      
+                Country = c.Country  
             }).ToList();
+            // --- FIN ACTUALIZACIÓN ---
 
             var pagedResult = new PagedResultDto<CustomerDto>(customerDtos, pageNumber, pageSize, totalCount);
 
             return Ok(pagedResult);
         }
 
-        // GET: api/Customers/ALFKI (Este no cambia)
+        // GET: api/Customers/ALFKI (No cambia)
         [HttpGet("{id}")]
         public async Task<ActionResult<Customer>> GetCustomer(string id)
         {
