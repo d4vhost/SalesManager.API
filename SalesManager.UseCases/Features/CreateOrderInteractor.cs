@@ -1,4 +1,6 @@
-﻿using SalesManager.BusinessObjects.Entities;
+﻿// En: SalesManager.UseCases/Features/CreateOrderInteractor.cs
+
+using SalesManager.BusinessObjects.Entities;
 using SalesManager.BusinessObjects.Interfaces;
 using SalesManager.UseCases.DTOs.Orders;
 using SalesManager.UseCases.Interfaces;
@@ -23,7 +25,14 @@ namespace SalesManager.UseCases.Features
 
         public async Task<int> HandleAsync(CreateOrderRequestDto request)
         {
-            // --- 1. Validaciones de Negocio ---
+            // --- CAMBIO 1: Obtener el cliente primero ---
+            var customer = await _unitOfWork.CustomerRepository.GetByIdAsync(request.CustomerID);
+            if (customer == null)
+            {
+                throw new InvalidOperationException($"El cliente con ID {request.CustomerID} no fue encontrado.");
+            }
+
+            // --- 1. Validaciones de Negocio (sin cambios) ---
             var duplicateProducts = request.Items
                 .GroupBy(i => i.ProductID)
                 .Where(g => g.Count() > 1)
@@ -34,19 +43,24 @@ namespace SalesManager.UseCases.Features
                 throw new InvalidOperationException($"Productos duplicados en la orden: {string.Join(", ", duplicateProducts)}");
             }
 
+            // --- CAMBIO 2: Usar los datos del cliente para la orden ---
             var newOrder = new Order
             {
                 CustomerID = request.CustomerID,
                 OrderDate = DateTime.UtcNow,
-                ShipAddress = "N/A",
-                ShipCity = "N/A",
-                ShipCountry = "N/A",
-                Freight = 0m
+                // Usamos los datos del cliente que encontramos
+                ShipAddress = customer.Address,
+                ShipCity = customer.City,
+                ShipCountry = customer.Country,
+                ShipPostalCode = customer.PostalCode,
+                ShipName = customer.CompanyName, // Opcional: usar el nombre de la compañía
+                Freight = 0m // Aún no calculamos flete, lo dejamos en 0
             };
+            // --- FIN CAMBIO 2 ---
 
             decimal subtotalOrder = 0m;
 
-            // --- 2. Procesar cada línea de producto ---
+            // --- 2. Procesar cada línea de producto (sin cambios) ---
             foreach (var item in request.Items)
             {
                 var product = await _unitOfWork.ProductRepository.GetByIdAsync(item.ProductID);
@@ -61,20 +75,14 @@ namespace SalesManager.UseCases.Features
                     throw new InvalidOperationException($"Stock insuficiente para '{product.ProductName}'. Solicitado: {item.Quantity}, Disponible: {product.UnitsInStock}.");
                 }
 
-                // --- 3. Descontar Stock ---
                 product.UnitsInStock = (short)(product.UnitsInStock!.Value - item.Quantity);
-
-                // ❌ ELIMINAR ESTA LÍNEA (causa el error)
-                // _unitOfWork.ProductRepository.Update(product);
-
-                // ✅ EF Core ya rastrea el cambio automáticamente
 
                 var orderDetail = new OrderDetail
                 {
                     ProductID = product.ProductID,
                     UnitPrice = product.UnitPrice ?? 0m,
                     Quantity = item.Quantity,
-                    Discount = 0
+                    Discount = 0f // Usando 0f para float
                 };
                 newOrder.OrderDetails.Add(orderDetail);
 
@@ -82,12 +90,12 @@ namespace SalesManager.UseCases.Features
                 subtotalOrder += lineSubtotal;
             }
 
-            // --- 4. Calcular Totales ---
+            // --- 4. Calcular Totales (sin cambios) ---
             newOrder.Subtotal = subtotalOrder;
             newOrder.VatAmount = Math.Round(subtotalOrder * VatRate, 2);
             newOrder.TotalAmount = newOrder.Subtotal + newOrder.VatAmount + (newOrder.Freight ?? 0m);
 
-            // --- 5. Guardar la Orden ---
+            // --- 5. Guardar la Orden (sin cambios) ---
             await _unitOfWork.OrderRepository.AddAsync(newOrder);
 
             int changes = await _unitOfWork.SaveChangesAsync();

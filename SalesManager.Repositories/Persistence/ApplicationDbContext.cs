@@ -29,6 +29,8 @@ namespace SalesManager.Repositories.Persistence
 
                 entity.Property(od => od.UnitPrice)
                     .HasColumnType("decimal(18,2)");
+
+                entity.ToTable("Order Details");
             });
 
             modelBuilder.Entity<Order>(entity =>
@@ -38,10 +40,10 @@ namespace SalesManager.Repositories.Persistence
 
                 entity.Property(o => o.Subtotal)
                     .HasColumnType("decimal(18,2)");
-                 
+
                 entity.Property(o => o.VatAmount)
                     .HasColumnType("decimal(18,2)");
-                 
+
                 entity.Property(o => o.TotalAmount)
                     .HasColumnType("decimal(18,2)");
             });
