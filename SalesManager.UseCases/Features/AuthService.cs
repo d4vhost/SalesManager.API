@@ -107,6 +107,12 @@ namespace SalesManager.UseCases.Features
                 new Claim(JwtRegisteredClaimNames.Email, userEmail)
             };
 
+            if (user.EmployeeID.HasValue)
+            {
+                // Usamos "employeeId" como nombre del claim
+                claims.Add(new Claim("employeeId", user.EmployeeID.Value.ToString()));
+            }
+
             var userRoles = await _userManager.GetRolesAsync(user);
             foreach (var userRole in userRoles)
             {

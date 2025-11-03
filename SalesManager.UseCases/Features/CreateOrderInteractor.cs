@@ -23,7 +23,7 @@ namespace SalesManager.UseCases.Features
             _logger = logger;
         }
 
-        public async Task<int> HandleAsync(CreateOrderRequestDto request)
+        public async Task<int> HandleAsync(CreateOrderRequestDto request, int? employeeId)
         {
             // --- CAMBIO 1: Obtener el cliente primero ---
             var customer = await _unitOfWork.CustomerRepository.GetByIdAsync(request.CustomerID);
@@ -48,15 +48,14 @@ namespace SalesManager.UseCases.Features
             {
                 CustomerID = request.CustomerID,
                 OrderDate = DateTime.UtcNow,
-                // Usamos los datos del cliente que encontramos
+                EmployeeID = employeeId, 
                 ShipAddress = customer.Address,
                 ShipCity = customer.City,
                 ShipCountry = customer.Country,
                 ShipPostalCode = customer.PostalCode,
-                ShipName = customer.CompanyName, // Opcional: usar el nombre de la compañía
-                Freight = 0m // Aún no calculamos flete, lo dejamos en 0
+                ShipName = customer.CompanyName, 
+                Freight = 0m 
             };
-            // --- FIN CAMBIO 2 ---
 
             decimal subtotalOrder = 0m;
 

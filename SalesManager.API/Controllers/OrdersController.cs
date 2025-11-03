@@ -7,7 +7,9 @@ using SalesManager.UseCases.Interfaces; // Necesario para ILoggerService, IPdfGe
 using System; // Necesario para Exception, DateTime
 using System.Collections.Generic; // Necesario para List<>
 using System.Linq; // Necesario para .Select() y .Sum()
+using System.Security.Claims;
 using System.Threading.Tasks; // Necesario para Task<>
+using SalesManager.UseCases.DTOs.Common;
 
 namespace SalesManager.WebAPI.Controllers
 {
@@ -42,7 +44,6 @@ namespace SalesManager.WebAPI.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateOrder([FromBody] CreateOrderRequestDto createOrderRequest)
         {
-            // Valida el modelo de entrada usando FluentValidation y DataAnnotations
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
@@ -50,21 +51,27 @@ namespace SalesManager.WebAPI.Controllers
 
             try
             {
-                // Delega la lógica principal al Interactor
-                int newOrderId = await _createOrderInteractor.HandleAsync(createOrderRequest);
+                // --- INICIO DE CAMBIOS ---
+                // 1. Obtener el claim "employeeId" del token del usuario logueado
+                var employeeIdClaim = User.FindFirstValue("employeeId");
 
-                // Devuelve 200 OK con el ID de la nueva orden
+                // 2. Convertirlo a un entero nullable
+                int? employeeId = int.TryParse(employeeIdClaim, out int id) ? id : (int?)null;
+
+                // 3. Pasar el ID al interactor
+                int newOrderId = await _createOrderInteractor.HandleAsync(createOrderRequest, employeeId);
+                // --- FIN DE CAMBIOS ---
+
                 _logger.LogInfo($"Orden {newOrderId} creada exitosamente.");
                 return Ok(new { orderId = newOrderId });
             }
-            catch (InvalidOperationException ex) // Errores de negocio esperados (stock, duplicados, etc.)
+            catch (InvalidOperationException ex)
             {
                 return BadRequest(new { message = ex.Message });
             }
-            catch (Exception ex) // Errores inesperados
+            catch (Exception ex)
             {
                 _logger.LogError("Error inesperado al crear orden.", ex);
-                // Devuelve 500 Internal Server Error
                 return StatusCode(500, new { message = "Ocurrió un error inesperado al procesar la orden." });
             }
         }
@@ -113,6 +120,40 @@ namespace SalesManager.WebAPI.Controllers
             };
 
             return Ok(orderDetailsDto);
+        }
+
+        // GET: api/Orders?customerId=ANATR&pageNumber=1&pageSize=10
+        /// <summary>
+        /// Busca y pagina las órdenes filtrando por cliente o empleado.
+        /// </summary>
+        [HttpGet]
+        public async Task<ActionResult<PagedResultDto<OrderSummaryDto>>> GetOrders(
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 10,
+            [FromQuery] string? customerId = null,
+            [FromQuery] int? employeeId = null)
+        {
+            if (pageNumber < 1) pageNumber = 1;
+            if (pageSize < 1) pageSize = 10;
+
+            var (orders, totalCount) = await _unitOfWork.OrderRepository.FindOrdersAsync(
+                pageNumber,
+                pageSize,
+                customerId,
+                employeeId);
+
+            // Mapear a un DTO más simple para la lista
+            var orderDtos = orders.Select(o => new OrderSummaryDto
+            {
+                OrderID = o.OrderID,
+                OrderDate = o.OrderDate,
+                CustomerID = o.CustomerID,
+                CustomerName = o.Customer?.CompanyName ?? "N/A",
+                TotalAmount = o.TotalAmount
+            }).ToList();
+
+            var pagedResult = new PagedResultDto<OrderSummaryDto>(orderDtos, pageNumber, pageSize, totalCount);
+            return Ok(pagedResult);
         }
 
         // GET: api/Orders/{id}/pdf
@@ -179,5 +220,17 @@ namespace SalesManager.WebAPI.Controllers
         public decimal UnitPrice { get; set; }
         public decimal Discount { get; set; }
         public decimal Subtotal { get; set; } // Subtotal por línea
+    }
+
+    /// <summary>
+    /// DTO simplificado para listas de órdenes.
+    /// </summary>
+    public class OrderSummaryDto
+    {
+        public int OrderID { get; set; }
+        public DateTime? OrderDate { get; set; }
+        public string? CustomerID { get; set; }
+        public string? CustomerName { get; set; }
+        public decimal TotalAmount { get; set; }
     }
 }
