@@ -160,34 +160,53 @@ namespace SalesManager.WebAPI.Controllers
         /// <summary>
         /// Genera y devuelve la factura de una orden en formato PDF.
         /// </summary>
-        /// <param name="id">El ID de la orden.</param>
-        /// <returns>Un archivo PDF o un error.</returns>
         [HttpGet("{id}/pdf")]
         public async Task<IActionResult> GetOrderPdf(int id)
         {
-            // Obtener la orden con detalles necesarios para el PDF
-            var order = await _unitOfWork.OrderRepository.GetOrderWithDetailsAsync(id);
-            if (order == null)
-            {
-                return NotFound($"Orden con ID {id} no encontrada.");
-            }
-
             try
             {
-                // Generar el PDF usando el servicio inyectado
+                _logger.LogInfo($"Intentando generar PDF para orden {id}");
+
+                // Obtener la orden con todos los detalles necesarios
+                var order = await _unitOfWork.OrderRepository.GetOrderWithDetailsAsync(id);
+
+                if (order == null)
+                {
+                    _logger.LogWarn($"Orden con ID {id} no encontrada.", null);
+                    return NotFound(new { message = $"Orden con ID {id} no encontrada." });
+                }
+
+                // Validar que la orden tenga detalles
+                if (order.OrderDetails == null || !order.OrderDetails.Any())
+                {
+                    _logger.LogWarn($"Orden {id} no tiene detalles para generar PDF.", null);
+                    return BadRequest(new { message = "La orden no tiene productos para generar la factura." });
+                }
+
+                _logger.LogInfo($"Orden {id} encontrada. Detalles: {order.OrderDetails.Count}, Customer: {order.Customer?.CompanyName ?? "NULL"}");
+
+                // Generar el PDF
                 byte[] pdfBytes = await _pdfGeneratorService.GenerateInvoicePdfAsync(order);
 
-                // Devolver el archivo PDF con el nombre adecuado
+                _logger.LogInfo($"PDF generado exitosamente para orden {id}. Tamaño: {pdfBytes.Length} bytes");
+
+                // Devolver el archivo PDF
                 return File(pdfBytes, "application/pdf", $"Factura-{id}.pdf");
             }
-            catch (InvalidOperationException ex) // Ej: Orden sin detalles
+            catch (InvalidOperationException ex)
             {
+                _logger.LogError($"Error de operación al generar PDF para orden {id}: {ex.Message}", ex);
                 return BadRequest(new { message = ex.Message });
             }
-            catch (Exception ex) // Otros errores durante la generación
+            catch (Exception ex)
             {
                 _logger.LogError($"Error inesperado al generar PDF para orden {id}.", ex);
-                return StatusCode(500, new { message = "Error al generar el PDF de la factura." });
+                return StatusCode(500, new
+                {
+                    message = "Error interno al generar el PDF de la factura.",
+                    details = ex.Message,
+                    stackTrace = ex.StackTrace
+                });
             }
         }
     }

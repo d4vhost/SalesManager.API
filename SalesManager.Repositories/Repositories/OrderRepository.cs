@@ -14,14 +14,12 @@ namespace SalesManager.Repositories.Repositories
         {
         }
 
-        // Requisito 12: Reconstruir una factura completa
         public async Task<Order?> GetOrderWithDetailsAsync(int orderId)
         {
-            // FirstOrDefaultAsync puede devolver null si no encuentra la orden
             return await _context.Orders
-                .Include(o => o.Customer)
-                .Include(o => o.OrderDetails)
-                    .ThenInclude(od => od.Product)
+                .Include(o => o.Customer)             
+                .Include(o => o.OrderDetails)         
+                    .ThenInclude(od => od.Product)    
                 .AsNoTracking()
                 .FirstOrDefaultAsync(o => o.OrderID == orderId);
         }
@@ -33,27 +31,23 @@ namespace SalesManager.Repositories.Repositories
             int? employeeId)
         {
             var query = _context.Orders
-                .Include(o => o.Customer) // Incluimos al cliente para tener su nombre
+                .Include(o => o.Customer)
                 .AsNoTracking();
 
-            // Aplicar filtro por CustomerID (si se provee)
             if (!string.IsNullOrWhiteSpace(customerId))
             {
                 query = query.Where(o => o.CustomerID == customerId);
             }
 
-            // Aplicar filtro por EmployeeID (si se provee)
             if (employeeId.HasValue && employeeId > 0)
             {
                 query = query.Where(o => o.EmployeeID == employeeId);
             }
 
-            // Contar el total ANTES de paginar
             var totalCount = await query.CountAsync();
 
-            // Aplicar orden y paginación
             var orders = await query
-                .OrderByDescending(o => o.OrderDate) // Mostrar las más recientes primero
+                .OrderByDescending(o => o.OrderDate)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
