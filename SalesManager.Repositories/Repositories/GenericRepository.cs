@@ -34,18 +34,27 @@ namespace SalesManager.Repositories.Repositories
         public async Task<T?> GetByIdAsync(int id)
         {
             // FindAsync puede devolver null si no encuentra la entidad
+            // IMPORTANTE: FindAsync SIEMPRE rastrea la entidad (no usa .AsNoTracking())
             return await _context.Set<T>().FindAsync(id);
         }
 
         public async Task<T?> GetByIdAsync(string id)
         {
             // FindAsync puede devolver null si no encuentra la entidad
+            // IMPORTANTE: FindAsync SIEMPRE rastrea la entidad (no usa .AsNoTracking())
             return await _context.Set<T>().FindAsync(id);
         }
 
+        // --- MÉTODO UPDATE CORREGIDO ---
         public void Update(T entity)
         {
-            _context.Set<T>().Update(entity);
+            // En lugar de usar _context.Set<T>().Update(entity),
+            // que puede causar conflictos si la entidad ya está rastreada,
+            // simplemente adjuntamos la entidad y marcamos su estado como Modificado.
+            // Esto es más seguro y maneja correctamente las entidades
+            // que ya fueron cargadas por GetByIdAsync.
+            _context.Set<T>().Attach(entity);
+            _context.Entry(entity).State = EntityState.Modified;
         }
     }
 }

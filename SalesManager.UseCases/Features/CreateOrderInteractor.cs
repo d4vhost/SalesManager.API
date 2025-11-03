@@ -39,13 +39,6 @@ namespace SalesManager.UseCases.Features
                 throw new InvalidOperationException($"Productos duplicados en la orden: {string.Join(", ", duplicateProducts)}");
             }
 
-            // (Opcional: Validar si el CustomerID existe)
-            // var customer = await _unitOfWork.CustomerRepository.GetByIdAsync(request.CustomerID);
-            // if (customer == null)
-            // {
-            //     throw new InvalidOperationException($"Cliente con ID {request.CustomerID} no encontrado.");
-            // }
-
             var newOrder = new Order
             {
                 CustomerID = request.CustomerID,
@@ -62,6 +55,7 @@ namespace SalesManager.UseCases.Features
             // --- 2. Procesar cada línea de producto ---
             foreach (var item in request.Items)
             {
+                // GetByIdAsync usa FindAsync, por lo que 'product' es rastreado por EF Core
                 var product = await _unitOfWork.ProductRepository.GetByIdAsync(item.ProductID);
 
                 // Validación robusta de producto y stock
@@ -80,9 +74,12 @@ namespace SalesManager.UseCases.Features
                 // --- 3. Descontar Stock y Crear Detalle ---
 
                 // Requisito 7: Disminución automática del inventario.pdf"]
-                // Usamos '!' para asegurar al compilador que UnitsInStock no es null aquí.
                 product.UnitsInStock = (short)(product.UnitsInStock!.Value - item.Quantity);
-                _unitOfWork.ProductRepository.Update(product); // Marcar producto como modificado
+
+                // --- LÍNEA RESTAURADA ---
+                // Ahora que GenericRepository.Update está corregido,
+                // volvemos a llamar a Update explícitamente.
+                _unitOfWork.ProductRepository.Update(product);
 
                 var orderDetail = new OrderDetail
                 {
@@ -109,9 +106,8 @@ namespace SalesManager.UseCases.Features
             await _unitOfWork.OrderRepository.AddAsync(newOrder); // Añadir la nueva orden al contexto
 
             // Requisito 17: "Utilizar transacciones".pdf"]
-            // SaveChangesAsync del UnitOfWork guardará la Orden (con su ID generado),
-            // los OrderDetails Y la actualización del Stock de los Productos
-            // en una única transacción de base de datos.
+            // SaveChangesAsync guardará la Order (Added), los OrderDetails (Added)
+            // y el Product (Modified) en una sola transacción.
             int changes = await _unitOfWork.SaveChangesAsync();
 
             if (changes > 0)
