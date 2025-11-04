@@ -1,5 +1,4 @@
-﻿using SalesManager.BusinessObjects.Entities;
-using Microsoft.EntityFrameworkCore.Storage;
+﻿using Microsoft.EntityFrameworkCore.Storage; // <-- ASEGÚRATE DE TENER ESTE USING
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,8 +15,9 @@ namespace SalesManager.BusinessObjects.Interfaces
         IOrderRepository OrderRepository { get; }
         ICategoryRepository CategoryRepository { get; }
         ISupplierRepository SupplierRepository { get; }
-        // Método para guardar todos los cambios en la base de datos
+        IEmployeeRepository EmployeeRepository { get; }
+
         Task<int> SaveChangesAsync();
-        Task<(IReadOnlyList<Employee> Employees, int TotalCount)> FindEmployeesAsync(string searchTerm, int pageNumber, int pageSize);
+        Task<IDbContextTransaction> BeginTransactionAsync();
     }
 }
