@@ -39,7 +39,7 @@ namespace SalesManager.WebAPI.Controllers
             var customerDtos = customers.Select(c => new CustomerDto
             {
                 CustomerID = c.CustomerID,
-                CompanyName = c.CompanyName,
+                CompanyName = c.CompanyName ?? "",
                 ContactName = c.ContactName,
                 Phone = c.Phone,
                 Address = c.Address, 

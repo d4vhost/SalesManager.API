@@ -1,15 +1,11 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SalesManager.BusinessObjects.Interfaces; // Necesario para IUnitOfWork y ILoggerService
+using SalesManager.UseCases.DTOs.Common;
 using SalesManager.UseCases.DTOs.Orders; // Necesario para DTOs de Órdenes
 using SalesManager.UseCases.Features; // Necesario para CreateOrderInteractor
 using SalesManager.UseCases.Interfaces; // Necesario para ILoggerService, IPdfGeneratorService
-using System; // Necesario para Exception, DateTime
-using System.Collections.Generic; // Necesario para List<>
-using System.Linq; // Necesario para .Select() y .Sum()
 using System.Security.Claims;
-using System.Threading.Tasks; // Necesario para Task<>
-using SalesManager.UseCases.DTOs.Common;
 
 namespace SalesManager.WebAPI.Controllers
 {

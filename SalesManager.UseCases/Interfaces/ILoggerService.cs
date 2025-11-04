@@ -10,7 +10,7 @@ namespace SalesManager.UseCases.Interfaces
     public interface ILoggerService
     {
         void LogInfo(string message);
-        void LogWarn(string message, Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException ex);
+        void LogWarn(string message, Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException? ex = null);
         void LogDebug(string message);
         void LogError(string message, Exception? ex = null);
     }

@@ -30,18 +30,7 @@ namespace SalesManager.Repositories.Services
                     _logger.LogError("ERROR: order es NULL", null);
                     throw new InvalidOperationException("Order es null");
                 }
-
-                _logger.LogInfo($"Order ID: {order.OrderID}");
-                _logger.LogInfo($"Customer: {order.Customer?.CompanyName ?? "NULL"}");
-                _logger.LogInfo($"OrderDetails count: {order.OrderDetails?.Count ?? 0}");
-
-                if (order.OrderDetails == null)
-                {
-                    _logger.LogError($"ERROR: OrderDetails es NULL para orden {order.OrderID}", null);
-                    throw new InvalidOperationException("OrderDetails es null");
-                }
-
-                if (!order.OrderDetails.Any())
+                if (order.OrderDetails == null || !order.OrderDetails.Any())
                 {
                     _logger.LogError($"ERROR: OrderDetails está VACÍO para orden {order.OrderID}", null);
                     throw new InvalidOperationException("No se puede generar PDF para una orden sin detalles.");
@@ -64,10 +53,24 @@ namespace SalesManager.Repositories.Services
         }
     }
 
+    // --- PLANTILLA PROFESIONAL CON DISEÑO MEJORADO ---
     public class InvoiceDocument : IDocument
     {
         public Order Model { get; }
         private readonly ILoggerService _logger;
+
+        // Colores profesionales
+        const string PrimaryColor = "#1E8449";      // Verde corporativo
+        const string SecondaryColor = "#27AE60";    // Verde más claro
+        const string LightGrey = "#F8F9FA";         // Gris muy claro para fondos
+        const string MediumGrey = "#E8E8E8";        // Gris medio para bordes
+        const string DarkGrey = "#2C3E50";          // Gris oscuro para texto
+        const string BorderColor = "#CCCCCC";       // Color de bordes de tabla
+
+        // Icono SVG de Factura Profesional (Documento con líneas)
+        static readonly string InvoiceIcon = @"<svg viewBox=""0 0 24 24"" fill=""currentColor"">
+            <path d=""M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M10,19L12,15H9V10H13V15L11,19H10Z""/>
+        </svg>";
 
         public InvoiceDocument(Order model, ILoggerService logger)
         {
@@ -81,31 +84,15 @@ namespace SalesManager.Repositories.Services
         {
             try
             {
-                _logger.LogInfo("=== INICIO Compose ===");
-
                 container.Page(page =>
                 {
-                    _logger.LogInfo("Configurando página...");
-                    page.Margin(50);
+                    page.Margin(40f);
                     page.PageColor(Colors.White);
-                    page.DefaultTextStyle(x => x.FontSize(12).FontFamily(Fonts.Arial));
+                    page.DefaultTextStyle(x => x.FontSize(10f).FontFamily(Fonts.Arial).FontColor(DarkGrey));
 
-                    _logger.LogInfo("Componiendo header...");
                     page.Header().Element(ComposeHeader);
-
-                    _logger.LogInfo("Componiendo content...");
                     page.Content().Element(ComposeContent);
-
-                    _logger.LogInfo("Componiendo footer...");
-                    page.Footer().AlignCenter().Text(x =>
-                    {
-                        x.Span("Página ");
-                        x.CurrentPageNumber();
-                        x.Span(" de ");
-                        x.TotalPages();
-                    });
-
-                    _logger.LogInfo("Página configurada exitosamente");
+                    page.Footer().Element(ComposeFooter);
                 });
             }
             catch (Exception ex)
@@ -117,145 +104,235 @@ namespace SalesManager.Repositories.Services
 
         void ComposeHeader(IContainer container)
         {
-            try
-            {
-                var titleStyle = TextStyle.Default.FontSize(20).SemiBold().FontColor(Colors.Blue.Medium);
+            var titleStyle = TextStyle.Default.FontSize(28f).ExtraBold().FontColor(PrimaryColor);
 
-                container.Row(row =>
+            container.Column(column =>
+            {
+                // Barra superior decorativa
+                column.Item().Height(5f).Background(PrimaryColor);
+
+                column.Item().PaddingTop(15f).Row(row =>
                 {
-                    row.RelativeItem().Column(column =>
+                    // Columna 1: Icono y Título
+                    row.RelativeItem().Row(iconRow =>
                     {
-                        column.Item().Text($"Factura #{Model.OrderID}").Style(titleStyle);
-                        column.Item().Text(text =>
+                        iconRow.ConstantItem(45f).Height(45f).Svg(InvoiceIcon);
+                        iconRow.ConstantItem(10f);
+                        iconRow.RelativeItem().Column(col =>
                         {
-                            text.Span("Fecha Orden: ").SemiBold();
-                            text.Span($"{Model.OrderDate:yyyy-MM-dd}");
+                            col.Item().Text("FACTURA").Style(titleStyle);
+                            col.Item().PaddingTop(2f).Text($"Orden #{Model.OrderID}")
+                                .FontSize(11f).FontColor(Colors.Grey.Darken1);
                         });
                     });
-                    row.ConstantItem(100).Height(50).Placeholder();
+
+                    // Columna 2: Datos de la Empresa
+                    row.RelativeItem().AlignRight().Column(col =>
+                    {
+                        col.Item().Text("SalesManager").Bold().FontSize(16f).FontColor(DarkGrey);
+                        col.Item().PaddingTop(4f).Text("Av. Amazonas y Colón").FontSize(9f);
+                        col.Item().Text("Ed. SalesManager").FontSize(9f);
+                        col.Item().Text("Quito, Ecuador").FontSize(9f);
+                        col.Item().PaddingTop(3f).Text("facturacion@salesmanager.com")
+                            .FontSize(9f).FontColor(PrimaryColor).Italic();
+                    });
                 });
 
-                container.PaddingTop(20).Column(column => {
-                    column.Item().Text("Cliente:").SemiBold();
-                    column.Item().Text(Model.Customer?.CompanyName ?? "N/A");
-                    column.Item().Text(Model.Customer?.ContactName ?? "");
-                    column.Item().Text($"ID: {Model.CustomerID}");
-                    column.Item().Text($"Dirección: {Model.ShipAddress ?? ""}, {Model.ShipCity ?? ""}, {Model.ShipCountry ?? ""}");
-                });
-
-                container.PaddingTop(10);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"ERROR en ComposeHeader: {ex.Message}", ex);
-                throw;
-            }
+                // Línea separadora
+                column.Item().PaddingTop(15f).LineHorizontal(2f).LineColor(SecondaryColor);
+            });
         }
 
         void ComposeContent(IContainer container)
         {
-            try
+            container.Column(column =>
             {
-                _logger.LogInfo($"ComposeContent: Procesando {Model.OrderDetails.Count} items");
-
-                container.Table(table =>
+                // --- SECCIÓN 1: DATOS DEL CLIENTE Y FECHA ---
+                column.Item().PaddingTop(20f).Row(row =>
                 {
-                    table.ColumnsDefinition(columns =>
-                    {
-                        columns.ConstantColumn(25);
-                        columns.RelativeColumn(3);
-                        columns.RelativeColumn();
-                        columns.RelativeColumn();
-                        columns.RelativeColumn();
-                        columns.RelativeColumn();
-                    });
-
-                    table.Header(header =>
-                    {
-                        header.Cell().Element(HeaderCellStyle).Text("#");
-                        header.Cell().Element(HeaderCellStyle).Text("Producto");
-                        header.Cell().Element(HeaderCellStyle).AlignRight().Text("P. Unit.");
-                        header.Cell().Element(HeaderCellStyle).AlignRight().Text("Cant.");
-                        header.Cell().Element(HeaderCellStyle).AlignRight().Text("Desc.");
-                        header.Cell().Element(HeaderCellStyle).AlignRight().Text("Subtotal");
-                    });
-
-                    int index = 1;
-                    foreach (var item in Model.OrderDetails)
-                    {
-                        try
+                    // Izquierda: Cliente
+                    row.RelativeItem().Background(LightGrey).Border(1f).BorderColor(MediumGrey)
+                        .Padding(10f).Column(col =>
                         {
-                            _logger.LogInfo($"Procesando item {index}: ProductID={item.ProductID}, ProductName={item.Product?.ProductName ?? "NULL"}");
+                            col.Item().Text("FACTURAR A:").SemiBold().FontSize(9f).FontColor(PrimaryColor);
+                            col.Item().PaddingTop(4f).Text(Model.Customer?.CompanyName ?? "N/A").Bold().FontSize(10f);
+                            col.Item().Text(Model.Customer?.ContactName ?? "").FontSize(8f);
+                            col.Item().Text(Model.Customer?.Address ?? "").FontSize(8f);
+                            col.Item().Text($"{Model.Customer?.City ?? ""}, {Model.Customer?.Country ?? ""}").FontSize(8f);
+                        });
 
-                            var unitPrice = item.UnitPrice;
-                            var quantity = item.Quantity;
-                            var discount = (decimal)item.Discount;
-                            var subtotal = unitPrice * quantity * (1 - discount);
+                    row.ConstantItem(15f);
 
-                            table.Cell().Element(BodyCellStyle).Text(index.ToString());
-                            table.Cell().Element(BodyCellStyle).Text(item.Product?.ProductName ?? "Producto no encontrado");
-                            table.Cell().Element(BodyCellStyle).AlignRight().Text($"{unitPrice:N2}");
-                            table.Cell().Element(BodyCellStyle).AlignRight().Text(quantity.ToString());
-                            table.Cell().Element(BodyCellStyle).AlignRight().Text($"{discount:P0}");
-                            table.Cell().Element(BodyCellStyle).AlignRight().Text($"{subtotal:N2}");
+                    // Derecha: Envío y Fecha
+                    row.RelativeItem().Column(col =>
+                    {
+                        // Envío
+                        col.Item().Background(LightGrey).Border(1f).BorderColor(MediumGrey)
+                            .Padding(10f).Column(shipCol =>
+                            {
+                                shipCol.Item().Text("ENVIAR A:").SemiBold().FontSize(9f).FontColor(PrimaryColor);
+                                shipCol.Item().PaddingTop(4f).Text(Model.ShipName ?? Model.Customer?.CompanyName ?? "N/A").Bold().FontSize(10f);
+                                shipCol.Item().Text(Model.ShipAddress ?? Model.Customer?.Address ?? "").FontSize(8f);
+                                shipCol.Item().Text($"{Model.ShipCity ?? Model.Customer?.City ?? ""}, {Model.ShipCountry ?? Model.Customer?.Country ?? ""}").FontSize(8f);
+                            });
 
-                            index++;
-                        }
-                        catch (Exception itemEx)
-                        {
-                            _logger.LogError($"ERROR procesando item {index}: {itemEx.Message}", itemEx);
-                            throw;
-                        }
-                    }
-
-                    // Totales
-                    table.Cell().ColumnSpan(5).AlignRight().PaddingRight(10).Text("Subtotal: ").SemiBold();
-                    table.Cell().AlignRight().Element(BodyCellStyle).Text($"{Model.Subtotal:N2}").SemiBold();
-
-                    table.Cell().ColumnSpan(5).AlignRight().PaddingRight(10).Text("IVA (12%): ").SemiBold();
-                    table.Cell().AlignRight().Element(BodyCellStyle).Text($"{Model.VatAmount:N2}").SemiBold();
-
-                    table.Cell().ColumnSpan(5).AlignRight().PaddingRight(10).Text("Flete: ").SemiBold();
-                    table.Cell().AlignRight().Element(BodyCellStyle).Text($"{Model.Freight ?? 0:N2}").SemiBold();
-
-                    table.Cell().ColumnSpan(5).AlignRight().PaddingRight(10).Text("Total: ").Bold();
-                    table.Cell().AlignRight().Element(TotalCellStyle).Text($"{Model.TotalAmount:N2}").Bold();
+                        // Fecha
+                        col.Item().PaddingTop(8f).Background(PrimaryColor).Padding(5f)
+                            .Text($"Fecha de Emisión: {Model.OrderDate:dd/MM/yyyy}")
+                            .FontSize(8f).SemiBold().FontColor(Colors.White);
+                    });
                 });
 
-                _logger.LogInfo("ComposeContent completado exitosamente");
-            }
-            catch (Exception ex)
+                // --- SECCIÓN 2: TABLA DE PRODUCTOS CON BORDES PROFESIONALES ---
+                column.Item().PaddingTop(20f).Element(ComposeTable);
+
+                // --- SECCIÓN 3: TOTALES (Justo después de la tabla) ---
+                column.Item().PaddingTop(15f).AlignRight().Element(ComposeTotals);
+            });
+        }
+
+        void ComposeTable(IContainer container)
+        {
+            container.Border(2f).BorderColor(BorderColor).Table(table =>
             {
-                _logger.LogError($"ERROR en ComposeContent: {ex.Message}", ex);
-                throw;
-            }
+                // Definición de columnas
+                table.ColumnsDefinition(columns =>
+                {
+                    columns.ConstantColumn(25f);  // #
+                    columns.RelativeColumn(5f);   // Producto
+                    columns.RelativeColumn(1.5f); // P. Unit.
+                    columns.RelativeColumn(1f);   // Cant.
+                    columns.RelativeColumn(1f);   // Desc.
+                    columns.RelativeColumn(1.5f); // Subtotal
+                });
+
+                // ENCABEZADO DE LA TABLA con fondo
+                table.Header(header =>
+                {
+                    IContainer HeaderCellStyle(IContainer c) => c
+                        .Background(PrimaryColor)
+                        .Border(1f)
+                        .BorderColor(BorderColor)
+                        .Padding(4f)
+                        .DefaultTextStyle(x => x.SemiBold().FontSize(8f).FontColor(Colors.White));
+
+                    header.Cell().Element(HeaderCellStyle).AlignCenter().Text("#");
+                    header.Cell().Element(HeaderCellStyle).Text("PRODUCTO");
+                    header.Cell().Element(HeaderCellStyle).AlignRight().Text("P. UNIT.");
+                    header.Cell().Element(HeaderCellStyle).AlignRight().Text("CANT.");
+                    header.Cell().Element(HeaderCellStyle).AlignRight().Text("DESC.");
+                    header.Cell().Element(HeaderCellStyle).AlignRight().Text("SUBTOTAL");
+                });
+
+                // FILAS DE PRODUCTOS con bordes visibles
+                int index = 1;
+                foreach (var item in Model.OrderDetails)
+                {
+                    var isEven = index % 2 == 0;
+                    var bgColor = isEven ? LightGrey : "#FFFFFF";
+
+                    IContainer BodyCellStyle(IContainer c) => c
+                        .Background(bgColor)
+                        .Border(1f)
+                        .BorderColor(BorderColor)
+                        .Padding(4f)
+                        .DefaultTextStyle(x => x.FontSize(8f));
+
+                    var lineSubtotal = item.UnitPrice * item.Quantity * (1 - (decimal)item.Discount);
+
+                    table.Cell().Element(BodyCellStyle).AlignCenter().Text(index.ToString()).SemiBold();
+                    table.Cell().Element(BodyCellStyle).Text(item.Product?.ProductName ?? "N/A");
+                    table.Cell().Element(BodyCellStyle).AlignRight().Text($"${item.UnitPrice:N2}");
+                    table.Cell().Element(BodyCellStyle).AlignCenter().Text(item.Quantity.ToString());
+                    table.Cell().Element(BodyCellStyle).AlignCenter().Text($"{item.Discount:P0}");
+                    table.Cell().Element(BodyCellStyle).AlignRight().Text($"${lineSubtotal:N2}").SemiBold();
+
+                    index++;
+                }
+
+                // FILAS VACÍAS para llenar el espacio (mínimo 12 filas totales)
+                int minRows = 12;
+                int currentRows = Model.OrderDetails.Count();
+
+                for (int i = currentRows; i < minRows; i++)
+                {
+                    var isEven = (i + 1) % 2 == 0;
+                    var bgColor = isEven ? LightGrey : "#FFFFFF";
+
+                    IContainer EmptyCellStyle(IContainer c) => c
+                        .Background(bgColor)
+                        .Border(1f)
+                        .BorderColor(BorderColor)
+                        .Padding(4f)
+                        .Height(20f); // Altura fija para filas vacías
+
+                    table.Cell().Element(EmptyCellStyle).Text("");
+                    table.Cell().Element(EmptyCellStyle).Text("");
+                    table.Cell().Element(EmptyCellStyle).Text("");
+                    table.Cell().Element(EmptyCellStyle).Text("");
+                    table.Cell().Element(EmptyCellStyle).Text("");
+                    table.Cell().Element(EmptyCellStyle).Text("");
+                }
+            });
         }
 
-        static IContainer HeaderCellStyle(IContainer container)
+        void ComposeTotals(IContainer container)
         {
-            return container
-                .DefaultTextStyle(x => x.SemiBold())
-                .PaddingVertical(5)
-                .BorderBottom(1)
-                .BorderColor(Colors.Grey.Lighten2);
+            container.Width(190f).Border(1f).BorderColor(BorderColor).Column(column =>
+            {
+                // Estilo para filas de subtotal e IVA
+                IContainer RowStyle(IContainer c) => c
+                    .Border(1f)
+                    .BorderColor(BorderColor)
+                    .Padding(5f)
+                    .Background(LightGrey);
+
+                // Subtotal
+                column.Item().Element(RowStyle).Row(row =>
+                {
+                    row.RelativeItem().Text("Subtotal:").FontSize(8f).FontColor(DarkGrey);
+                    row.RelativeItem().AlignRight().Text($"${Model.Subtotal:N2}").FontSize(8f).SemiBold();
+                });
+
+                // IVA
+                column.Item().Element(RowStyle).Row(row =>
+                {
+                    row.RelativeItem().Text("IVA (12%):").FontSize(8f).FontColor(DarkGrey);
+                    row.RelativeItem().AlignRight().Text($"${Model.VatAmount:N2}").FontSize(8f).SemiBold();
+                });
+
+                // Flete
+                column.Item().Element(RowStyle).Row(row =>
+                {
+                    row.RelativeItem().Text("Flete:").FontSize(8f).FontColor(DarkGrey);
+                    row.RelativeItem().AlignRight().Text($"${Model.Freight ?? 0:N2}").FontSize(8f).SemiBold();
+                });
+
+                // TOTAL con destacado
+                column.Item().Background(PrimaryColor).Padding(6f).Row(row =>
+                {
+                    row.RelativeItem().Text("TOTAL:").FontSize(10f).ExtraBold().FontColor(Colors.White);
+                    row.RelativeItem().AlignRight().Text($"${Model.TotalAmount:N2}")
+                        .FontSize(11f).ExtraBold().FontColor(Colors.White);
+                });
+            });
         }
 
-        static IContainer BodyCellStyle(IContainer container)
+        void ComposeFooter(IContainer container)
         {
-            return container
-                .BorderBottom(1)
-                .BorderColor(Colors.Grey.Lighten2)
-                .PaddingVertical(5);
-        }
-
-        static IContainer TotalCellStyle(IContainer container)
-        {
-            return container
-                .BorderBottom(2)
-                .BorderTop(2)
-                .BorderColor(Colors.Blue.Medium)
-                .PaddingVertical(8)
-                .Background(Colors.Blue.Lighten5);
+            container.AlignCenter().Column(column =>
+            {
+                column.Item().LineHorizontal(1f).LineColor(MediumGrey);
+                column.Item().PaddingTop(10f).Text(text =>
+                {
+                    text.DefaultTextStyle(x => x.FontSize(9f).FontColor(Colors.Grey.Darken1));
+                    text.Span("¡Gracias por su compra! ");
+                    text.Span("• ");
+                    text.Span("SalesManager © 2025").SemiBold();
+                });
+                column.Item().PaddingTop(3f).Text("www.salesmanager.com")
+                    .FontSize(8f).FontColor(PrimaryColor).Italic();
+            });
         }
     }
 }
