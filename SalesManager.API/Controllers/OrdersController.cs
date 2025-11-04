@@ -95,7 +95,7 @@ namespace SalesManager.WebAPI.Controllers
                 OrderID = order.OrderID,
                 OrderDate = order.OrderDate,
                 CustomerID = order.CustomerID,
-                CustomerName = order.Customer?.CompanyName, // Asume que Customer fue incluido
+                CustomerName = order.Customer?.ContactName, 
                 ShipAddress = order.ShipAddress,
                 ShipCity = order.ShipCity,
                 ShipCountry = order.ShipCountry,

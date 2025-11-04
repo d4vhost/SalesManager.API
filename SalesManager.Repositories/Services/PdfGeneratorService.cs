@@ -150,37 +150,64 @@ namespace SalesManager.Repositories.Services
                 // --- SECCIÓN 1: DATOS DEL CLIENTE Y FECHA ---
                 column.Item().PaddingTop(20f).Row(row =>
                 {
-                    // Izquierda: Cliente
+                    // Izquierda: Cliente y Fecha (COMO EN TU CAPTURA)
                     row.RelativeItem().Background(LightGrey).Border(1f).BorderColor(MediumGrey)
                         .Padding(10f).Column(col =>
                         {
-                            col.Item().Text("FACTURAR A:").SemiBold().FontSize(9f).FontColor(PrimaryColor);
-                            col.Item().PaddingTop(4f).Text(Model.Customer?.CompanyName ?? "N/A").Bold().FontSize(10f);
-                            col.Item().Text(Model.Customer?.ContactName ?? "").FontSize(8f);
-                            col.Item().Text(Model.Customer?.Address ?? "").FontSize(8f);
-                            col.Item().Text($"{Model.Customer?.City ?? ""}, {Model.Customer?.Country ?? ""}").FontSize(8f);
+                            // Título "Cliente"
+                            col.Item().Text("Cliente").SemiBold().FontSize(12f).FontColor(DarkGrey);
+
+                            // Nombre: Eduardo Saavedra
+                            col.Item().PaddingTop(8f).Text(text =>
+                            {
+                                text.DefaultTextStyle(x => x.FontSize(9f));
+                                text.Span("Nombre: ").SemiBold();
+                                text.Span(Model.Customer?.ContactName ?? "N/A");
+                            });
+
+                            // Fecha de Orden: 3 de noviembre de 2025, 23:56
+                            col.Item().PaddingTop(4f).Text(text =>
+                            {
+                                text.DefaultTextStyle(x => x.FontSize(9f));
+                                text.Span("Fecha de Orden: ").SemiBold();
+                                // Usamos el formato completo (Día, Mes, Año, Hora)
+                                text.Span(Model.OrderDate?.ToString("dd 'de' MMMM 'de' yyyy, HH:mm") ?? "N/A");
+                            });
                         });
 
                     row.ConstantItem(15f);
 
-                    // Derecha: Envío y Fecha
-                    row.RelativeItem().Column(col =>
-                    {
-                        // Envío
-                        col.Item().Background(LightGrey).Border(1f).BorderColor(MediumGrey)
-                            .Padding(10f).Column(shipCol =>
+                    // Derecha: Envío (COMO EN TU CAPTURA)
+                    row.RelativeItem().Background(LightGrey).Border(1f).BorderColor(MediumGrey)
+                        .Padding(10f).Column(shipCol =>
+                        {
+                            // Título "Enviar A"
+                            shipCol.Item().Text("Enviar A").SemiBold().FontSize(12f).FontColor(DarkGrey);
+
+                            // Dirección: Rambla de Cataluña, 23
+                            shipCol.Item().PaddingTop(8f).Text(text =>
                             {
-                                shipCol.Item().Text("ENVIAR A:").SemiBold().FontSize(9f).FontColor(PrimaryColor);
-                                shipCol.Item().PaddingTop(4f).Text(Model.ShipName ?? Model.Customer?.CompanyName ?? "N/A").Bold().FontSize(10f);
-                                shipCol.Item().Text(Model.ShipAddress ?? Model.Customer?.Address ?? "").FontSize(8f);
-                                shipCol.Item().Text($"{Model.ShipCity ?? Model.Customer?.City ?? ""}, {Model.ShipCountry ?? Model.Customer?.Country ?? ""}").FontSize(8f);
+                                text.DefaultTextStyle(x => x.FontSize(9f));
+                                text.Span("Dirección: ").SemiBold();
+                                text.Span(Model.ShipAddress ?? Model.Customer?.Address ?? "N/A");
                             });
 
-                        // Fecha
-                        col.Item().PaddingTop(8f).Background(PrimaryColor).Padding(5f)
-                            .Text($"Fecha de Emisión: {Model.OrderDate:dd/MM/yyyy}")
-                            .FontSize(8f).SemiBold().FontColor(Colors.White);
-                    });
+                            // Ciudad: Barcelona
+                            shipCol.Item().PaddingTop(4f).Text(text =>
+                            {
+                                text.DefaultTextStyle(x => x.FontSize(9f));
+                                text.Span("Ciudad: ").SemiBold();
+                                text.Span(Model.ShipCity ?? Model.Customer?.City ?? "N/A");
+                            });
+
+                            // País: Spain
+                            shipCol.Item().PaddingTop(4f).Text(text =>
+                            {
+                                text.DefaultTextStyle(x => x.FontSize(9f));
+                                text.Span("País: ").SemiBold();
+                                text.Span(Model.ShipCountry ?? Model.Customer?.Country ?? "N/A");
+                            });
+                        });
                 });
 
                 // --- SECCIÓN 2: TABLA DE PRODUCTOS CON BORDES PROFESIONALES ---

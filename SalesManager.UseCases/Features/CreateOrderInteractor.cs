@@ -47,13 +47,13 @@ namespace SalesManager.UseCases.Features
             var newOrder = new Order
             {
                 CustomerID = request.CustomerID,
-                OrderDate = DateTime.UtcNow,
+                OrderDate = DateTime.Now,
                 EmployeeID = employeeId, 
                 ShipAddress = customer.Address,
                 ShipCity = customer.City,
                 ShipCountry = customer.Country,
                 ShipPostalCode = customer.PostalCode,
-                ShipName = customer.CompanyName, 
+                ShipName = customer.ContactName,
                 Freight = 0m 
             };
 
