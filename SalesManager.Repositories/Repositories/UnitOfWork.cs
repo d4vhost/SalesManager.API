@@ -1,7 +1,8 @@
 ﻿using SalesManager.Repositories.Persistence;
 using SalesManager.BusinessObjects.Interfaces;
+using Microsoft.EntityFrameworkCore.Storage;
 using System;
-using System.Threading.Tasks; // Asegúrate de tener este using para Task<>
+using System.Threading.Tasks; 
 
 namespace SalesManager.Repositories.Repositories
 {
@@ -14,7 +15,8 @@ namespace SalesManager.Repositories.Repositories
         public ICustomerRepository CustomerRepository { get; }
         public IOrderRepository OrderRepository { get; }
         public ICategoryRepository CategoryRepository { get; }
-        public ISupplierRepository SupplierRepository { get; } 
+        public ISupplierRepository SupplierRepository { get; }
+        public IEmployeeRepository EmployeeRepository { get; }
 
         public UnitOfWork(ApplicationDbContext context)
         {
@@ -25,12 +27,17 @@ namespace SalesManager.Repositories.Repositories
             CustomerRepository = new CustomerRepository(_context);
             OrderRepository = new OrderRepository(_context);
             CategoryRepository = new CategoryRepository(_context);
-            SupplierRepository = new SupplierRepository(_context); // <-- Inicialización añadida
+            SupplierRepository = new SupplierRepository(_context);
+            EmployeeRepository = new EmployeeRepository(_context);
         }
 
         public async Task<int> SaveChangesAsync()
         {
             return await _context.SaveChangesAsync();
+        }
+        public async Task<IDbContextTransaction> BeginTransactionAsync()
+        {
+            return await _context.Database.BeginTransactionAsync();
         }
 
         public void Dispose()

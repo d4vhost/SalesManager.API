@@ -14,5 +14,6 @@ namespace SalesManager.BusinessObjects.Entities
         public string Cedula { get; set; } = "";
 
         public int? EmployeeID { get; set; }
+        public virtual Employee? Employee { get; set; }
     }
 }

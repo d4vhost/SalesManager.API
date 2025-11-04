@@ -13,9 +13,11 @@ namespace SalesManager.UseCases
             // Registrar servicios (Interactors)
             services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<CreateOrderInteractor>();
+            services.AddScoped<IEmployeeService, EmployeeService>();
 
             // Registrar validadores de FluentValidation
             // Requiere "using FluentValidation;"
+            services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
             services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
 
             return services;
