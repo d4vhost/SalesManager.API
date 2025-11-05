@@ -29,14 +29,16 @@ namespace SalesManager.UseCases.Validation
                 .NotEmpty().WithMessage("El correo es obligatorio.")
                 .EmailAddress().WithMessage("El formato del correo no es válido."); // Requisito 6: formato email
 
+            // --- INICIO DE MODIFICACIÓN: Relajar reglas de contraseña ---
             RuleFor(x => x.Password)
                 .NotEmpty().WithMessage("La clave es obligatoria.")
-                .MinimumLength(4).WithMessage("La clave debe tener al menos 4 caracteres.") // Requisito 18
-                .MaximumLength(10).WithMessage("La clave no puede exceder los 10 caracteres.") // Requisito 18
-                .Matches("[A-Z]").WithMessage("La clave debe contener al menos una mayúscula.") // Requisito 18
-                .Matches("[a-z]").WithMessage("La clave debe contener al menos una minúscula.") // Requisito 18
-                .Matches("[0-9]").WithMessage("La clave debe contener al menos un número.") // Requisito 18
-                .Matches("[^a-zA-Z0-9]").WithMessage("La clave debe contener al menos un caracter especial."); // Requisito 18
+                .MinimumLength(4).WithMessage("La clave debe tener al menos 4 caracteres.");
+            // .MaximumLength(10).WithMessage("La clave no puede exceder los 10 caracteres.") 
+            // .Matches("[A-Z]").WithMessage("La clave debe contener al menos una mayúscula.") 
+            // .Matches("[a-z]").WithMessage("La clave debe contener al menos una minúscula.") 
+            // .Matches("[0-9]").WithMessage("La clave debe contener al menos un número.") 
+            // .Matches("[^a-zA-Z0-9]").WithMessage("La clave debe contener al menos un caracter especial.");
+            // --- FIN DE MODIFICACIÓN ---
 
             RuleFor(x => x.ConfirmPassword)
                 .Equal(x => x.Password).WithMessage("Las claves no coinciden.");

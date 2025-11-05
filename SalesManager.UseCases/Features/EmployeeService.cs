@@ -7,7 +7,7 @@ using System.Text;
 using System;
 using System.Threading.Tasks;
 using System.Linq;
-using Microsoft.EntityFrameworkCore; 
+using Microsoft.EntityFrameworkCore;
 
 namespace SalesManager.UseCases.Features
 {
@@ -74,16 +74,23 @@ namespace SalesManager.UseCases.Features
                 var identityResult = await _userManager.CreateAsync(user, dto.Password);
                 if (!identityResult.Succeeded)
                 {
-                    await transaction.RollbackAsync();
+                    // --- INICIO DE MODIFICACIÓN ---
+                    // NO hacer rollback aquí. Solo lanzar la excepción.
+                    // El bloque 'catch' se encargará del rollback.
+                    // await transaction.RollbackAsync(); // <-- LÍNEA ELIMINADA
                     throw new InvalidOperationException($"Error al crear el login: {GetIdentityErrors(identityResult)}");
+                    // --- FIN DE MODIFICACIÓN ---
                 }
 
                 // 7. Asignar rol "Usuario" (rol de ventas/POS)
                 var roleResult = await _userManager.AddToRoleAsync(user, "Usuario");
                 if (!roleResult.Succeeded)
                 {
-                    await transaction.RollbackAsync();
+                    // --- INICIO DE MODIFICACIÓN ---
+                    // NO hacer rollback aquí. Solo lanzar la excepción.
+                    // await transaction.RollbackAsync(); // <-- LÍNEA ELIMINADA
                     throw new InvalidOperationException($"Error al asignar rol: {GetIdentityErrors(roleResult)}");
+                    // --- FIN DE MODIFICACIÓN ---
                 }
 
                 // 8. Confirmar la transacción
@@ -94,7 +101,11 @@ namespace SalesManager.UseCases.Features
             }
             catch (Exception ex)
             {
+                // --- MODIFICACIÓN ---
+                // Este bloque 'catch' ahora manejará TODOS los rollbacks.
                 await transaction.RollbackAsync();
+                // --- FIN MODIFICACIÓN ---
+
                 _logger.LogError($"Error en CreateEmployeeAndUserAsync: {ex.Message}", ex);
                 throw; // Re-lanza la excepción
             }
@@ -142,8 +153,11 @@ namespace SalesManager.UseCases.Features
                     var identityResult = await _userManager.DeleteAsync(user);
                     if (!identityResult.Succeeded)
                     {
-                        await transaction.RollbackAsync();
+                        // --- INICIO DE MODIFICACIÓN ---
+                        // (Misma lógica que en Create)
+                        // await transaction.RollbackAsync(); // <-- LÍNEA ELIMINADA
                         throw new InvalidOperationException($"Error al eliminar el login: {GetIdentityErrors(identityResult)}");
+                        // --- FIN DE MODIFICACIÓN ---
                     }
                 }
 
