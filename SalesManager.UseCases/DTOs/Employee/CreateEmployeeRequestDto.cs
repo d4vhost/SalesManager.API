@@ -34,7 +34,9 @@ namespace SalesManager.UseCases.DTOs.Employee
         public string Email { get; set; } = string.Empty;
 
         [Required]
-        [StringLength(8, MinimumLength = 6)]
+        // --- INICIO DE MODIFICACIÓN: Requisito 18 (PDF) ---
+        [StringLength(10, MinimumLength = 4, ErrorMessage = "La clave debe tener entre 4 y 10 caracteres.")]
+        // --- FIN DE MODIFICACIÓN ---
         public string Password { get; set; } = string.Empty;
     }
 }

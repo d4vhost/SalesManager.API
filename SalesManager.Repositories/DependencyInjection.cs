@@ -25,13 +25,14 @@ namespace SalesManager.Repositories
             // 2. Configurar Identity
             services.AddIdentity<ApplicationUser, IdentityRole>(options =>
             {
-                // --- INICIO DE MODIFICACIÓN: Relajar reglas de contraseña ---
-                options.Password.RequireDigit = false;
-                options.Password.RequireLowercase = false;
-                options.Password.RequireUppercase = false;
-                options.Password.RequireNonAlphanumeric = false;
-                options.Password.RequiredLength = 4; // Longitud mínima de 4
-                                                     // --- FIN DE MODIFICACIÓN ---
+                // --- INICIO DE MODIFICACIÓN: Requisito 18 (PDF) ---
+                options.Password.RequireDigit = true;         // Requerir un número
+                options.Password.RequireLowercase = true;      // Requerir una minúscula
+                options.Password.RequireUppercase = true;      // Requerir una mayúscula
+                options.Password.RequireNonAlphanumeric = true; // Requerir un caracter especial
+                options.Password.RequiredLength = 4;          // Longitud mínima de 4
+                // NOTA: La longitud máxima (10) se valida en el DTO/Validador.
+                // --- FIN DE MODIFICACIÓN ---
 
                 options.Lockout.MaxFailedAccessAttempts = 4;
                 options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
