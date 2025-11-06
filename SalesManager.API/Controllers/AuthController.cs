@@ -272,9 +272,9 @@ namespace SalesManager.WebAPI.Controllers
             var user = await _userManager.FindByEmailAsync(email);
             if (user == null) return NotFound($"User '{email}' not found.");
 
-            // --- START OF FIX ---
-            // We must generate a reset token and use it to apply the new password.
-            // This is the correct admin flow and bypasses the "old password" requirement.
+            // --- INICIO DE LA CORRECCIÓN ---
+            // Debemos generar un token de reseteo y usarlo para aplicar la nueva contraseña.
+            // Este es el flujo de administrador correcto y omite el requisito de la "contraseña antigua".
 
             var token = await _userManager.GeneratePasswordResetTokenAsync(user);
             var resetResult = await _userManager.ResetPasswordAsync(user, token, dto.NewPassword);
@@ -282,26 +282,10 @@ namespace SalesManager.WebAPI.Controllers
             if (!resetResult.Succeeded)
             {
                 _logger.LogError($"Failed to reset password for '{email}'.", new Exception(string.Join(", ", resetResult.Errors.Select(e => e.Description))));
-                // This will fail if the new password doesn't meet Identity complexity rules (Req 18)
+                // Esto fallará si la nueva contraseña no cumple con las reglas de complejidad de Identity (Req 18)
                 return BadRequest(new { message = "Failed to set new password. Ensure it meets complexity requirements.", errors = resetResult.Errors });
             }
-            // --- END OF FIX ---
-
-            /* --- OLD, FLAWED LOGIC ---
-            // Force change: Remove old password, add new one
-            var removeResult = await _userManager.RemovePasswordAsync(user);
-            if (!removeResult.Succeeded)
-            {
-                _logger.LogWarn($"Could not remove old password for '{email}'. Proceeding to add new one.", null);
-            }
-
-            var addResult = await _userManager.AddPasswordAsync(user, dto.NewPassword);
-            if (!addResult.Succeeded)
-            {
-                _logger.LogError($"Failed to add new password for '{email}'.", new Exception(string.Join(", ", addResult.Errors.Select(e => e.Description))));
-                return BadRequest(new { message = "Failed to set new password.", errors = addResult.Errors });
-            }
-            */
+            // --- FIN DE LA CORRECCIÓN ---
 
             _logger.LogInfo($"Password for '{email}' changed by admin.");
             return Ok(new { message = $"Password for '{email}' changed successfully." });
